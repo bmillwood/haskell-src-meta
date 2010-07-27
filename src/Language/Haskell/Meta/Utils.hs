@@ -1,0 +1,506 @@
+{-# LANGUAGE TemplateHaskell, RankNTypes, StandaloneDeriving,
+             FlexibleContexts, FlexibleInstances, TypeSynonymInstances #-}
+
+-- | This module is a staging ground
+-- for to-be-organized-and-merged-nicely code.
+
+module Language.Haskell.Meta.Utils where
+
+import Data.Typeable
+import Data.Generics hiding(Fixity)
+import Language.Haskell.Meta
+import System.IO.Unsafe(unsafePerformIO)
+import Language.Haskell.Exts.Pretty(prettyPrint)
+import Language.Haskell.TH.Quote
+import Language.Haskell.TH.Syntax
+import Language.Haskell.TH.Lib
+import Language.Haskell.TH.Ppr
+import Text.PrettyPrint
+import Control.Monad
+
+-----------------------------------------------------------------------------
+
+
+cleanNames :: (Data a) => a -> a
+cleanNames = everywhere (mkT cleanName)
+  where cleanName :: Name -> Name
+        cleanName n
+          | isNameU n = n
+          | otherwise = (mkName . nameBase) n
+        isNameU :: Name -> Bool
+        isNameU (Name _ (NameU _)) = True
+        isNameU _ = False
+
+
+-- | The type passed in must have a @Show@ instance which
+--  produces a valid Haskell expression. Returns an empty
+--  @String@ if this is not the case. This is not TH-specific,
+--  but useful in general.
+pretty :: (Show a) => a -> String
+pretty a = case parseHsExp (show a) of
+            Left _ -> []
+            Right e -> prettyPrint e
+
+
+pp :: (Data a, Ppr a) => a -> String
+pp = pprint . cleanNames
+
+ppDoc :: (Data a, Ppr a) => a -> Doc
+ppDoc = text . pp
+
+
+gpretty :: (Data a) => a -> String
+gpretty = either (const []) prettyPrint . parseHsExp . gshow
+
+
+instance Show ExpQ where show = show . cleanNames . unQ
+instance Show (Q [Dec]) where show = unlines . fmap (show . cleanNames) . unQ
+instance Show DecQ where show = show . cleanNames . unQ
+instance Show TypeQ where show = show . cleanNames . unQ
+instance Show (Q String) where show = unQ
+instance Show (Q Doc) where show = show . unQ
+
+deriving instance Typeable1 Q
+deriving instance Typeable QuasiQuoter
+
+
+-- | @unQ = unsafePerformIO . runQ@
+unQ :: Q a -> a
+unQ = unsafePerformIO . runQ
+
+
+nameToRawCodeStr :: Name -> String
+nameToRawCodeStr n =
+  let s = showNameParens n
+  in case nameSpaceOf n of
+      Just VarName -> "'"++s
+      Just DataName -> "'"++s
+      Just TcClsName -> "''"++s
+      _ -> concat ["(mkName \"", filter (/='"') s, "\")"]
+  where showNameParens :: Name -> String
+        showNameParens n =
+          let nb = nameBase n
+          in case nb of
+            (c:_) | isSym c -> concat ["(",nb,")"]
+            _  -> nb
+        isSym :: Char -> Bool
+        isSym = (`elem` "><.\\/!@#$%^&*-+?:|")
+
+
+-----------------------------------------------------------------------------
+
+
+(|$|) :: ExpQ -> ExpQ -> ExpQ
+infixr 0 |$|
+f |$| x = [|$f $x|]
+
+(|.|) :: ExpQ -> ExpQ -> ExpQ
+infixr 9 |.|
+g |.| f = [|$g . $f|]
+
+(|->|) :: TypeQ -> TypeQ -> TypeQ
+infixr 9 |->|
+a |->| b = appT (appT arrowT a) b
+
+
+
+unForall :: Type -> Type
+unForall (ForallT _ _ t) = t
+unForall t = t
+
+functionT :: [TypeQ] -> TypeQ
+functionT = foldl1 (|->|)
+
+mkVarT :: String -> TypeQ
+mkVarT = varT . mkName
+
+
+
+myNames :: [Name]
+myNames = let xs = fmap (:[]) ['a'..'z']
+              ys = iterate (join (zipWith (++))) xs
+           in fmap mkName (concat ys)
+
+
+renameTs env new acc [] = (reverse acc, env, new)
+renameTs env new acc (t:ts) =
+  let (t',env',new') = renameT env new t
+  in renameTs env' new' (t':acc) ts
+
+renameT :: [(Name, Name)] -> [Name] -> Type -> (Type, [(Name,Name)], [Name])
+renameT env (x:new) (VarT n)
+ | Just n' <- lookup n env = (VarT n',env,x:new)
+ | otherwise = (VarT x, (n,x):env, new) 
+renameT env new (ConT n) = (ConT ((mkName . nameBase) n), env, new)
+renameT env new t@(TupleT {}) = (t,env,new)
+renameT env new ArrowT = (ArrowT,env,new)
+renameT env new ListT = (ListT,env,new)
+renameT env new (AppT t t') = let (s,env',new') = renameT env new t
+                                  (s',env'',new'') = renameT env' new' t'
+                              in (AppT s s', env'', new'')
+renameT env new (ForallT ns cxt t) =
+  let unVarT (VarT n) = n
+      (ns',env2,new2) = renameTs env new [] (fmap VarT ns)
+      ns'' = fmap unVarT ns'
+      (cxt',env3,new3) = renameTs env2 new2 [] cxt
+      (t',env4,new4) = renameT env3 new3 t
+  in (ForallT ns'' cxt' t', env4, new4)
+
+
+
+applyT :: Type -> Type -> Type
+applyT (ForallT [] _ t) t' = t `AppT` t'
+applyT (ForallT (n:ns) cxt t) t' = ForallT ns cxt (substT [(n,t')] ns t)
+applyT t t' = t `AppT` t'
+
+
+
+substT :: [(Name, Type)] -> [Name] -> Type -> Type
+substT env bnd (ForallT ns _ t) = substT env (ns++bnd) t
+substT env bnd t@(VarT n)
+  | n `elem` bnd = t
+  | otherwise = maybe t id (lookup n env)
+substT env bnd (AppT t t') = AppT (substT env bnd t)
+                                  (substT env bnd t')
+substT _ _ t = t
+
+
+
+
+
+-- | Stolen from Igloo's th-lift.
+deriveLift :: Name -> Q Dec
+deriveLift n
+ = do i <- reify n
+      case i of
+        TyConI (DataD _ _ vs cons _) ->
+          let ctxt = cxt [conT ''Lift `appT` varT v | v <- vs]
+              typ = foldl appT (conT n) $ map varT vs
+              fun = funD 'lift (map doCons cons)
+          in instanceD ctxt (conT ''Lift `appT` typ) [fun]
+        _ -> error (modName ++ ".deriveLift: unhandled: " ++ pprint i)
+  where modName :: String
+        modName = "Language.Haskell.TH.Utils"
+        doCons :: Con -> Q Clause
+        doCons (NormalC c sts) = do
+          let ns = zipWith (\_ i -> "x" ++ show i) sts [0..]
+              con = [| conE c |]
+              args = [ [| lift $(varE (mkName n)) |] | n <- ns ]
+              e = foldl (\e1 e2 -> [| appE $e1 $e2 |]) con args
+          clause [conP c (map (varP . mkName) ns)] (normalB e) []
+        doCons c = error (modName ++ ".doCons: Unhandled constructor: " ++ pprint c)
+
+
+
+-- | Produces pretty code suitable
+--  for human consumption.
+deriveLiftPretty :: Name -> Q String
+deriveLiftPretty n = do
+  decs <- deriveLift n
+  case (parseHsDecls . pprint . cleanNames) decs of
+    Left e -> fail ("deriveLiftPretty: error while prettifying code: "++e)
+    Right hsdecs -> return (unlines . fmap prettyPrint $ hsdecs)
+
+
+
+
+splitCon :: Con -> (Name,[Type])
+splitCon c = (conName c, conTypes c)
+
+
+strictTypeTy :: StrictType -> Type
+strictTypeTy (_,t) = t
+
+varStrictTypeTy :: VarStrictType -> Type
+varStrictTypeTy (_,_,t) = t
+
+
+conTypes :: Con -> [Type]
+conTypes (NormalC _ sts) = fmap strictTypeTy sts
+conTypes (RecC    _ vts) = fmap varStrictTypeTy vts
+conTypes (InfixC t _ t') = fmap strictTypeTy [t,t']
+conTypes (ForallC _ _ c) = conTypes c
+
+
+conToConType :: Type -> Con -> Type
+conToConType ofType con = foldr (\a b -> AppT (AppT ArrowT a) b) ofType (conTypes con)
+
+
+
+decCons :: Dec -> [Con]
+decCons (DataD _ _ _ cons _) = cons
+decCons (NewtypeD _ _ _ con _) = [con]
+decCons _ = []
+
+
+decTyVars :: Dec -> [Name]
+decTyVars (DataD _ _ ns _ _) = ns
+decTyVars (NewtypeD _ _ ns _ _) = ns
+decTyVars (TySynD _ ns _) = ns
+decTyVars (ClassD _ _ ns _ _) = ns
+decTyVars _ = []
+
+
+decName :: Dec -> Maybe Name
+decName (FunD n _) = Just n
+decName (DataD _ n _ _ _) = Just n
+decName (NewtypeD _ n _ _ _) = Just n
+decName (TySynD n _ _) = Just n
+decName (ClassD _ n _ _ _) = Just n
+decName (SigD n _) = Just n
+decName (ForeignD fgn) = Just (foreignName fgn)
+decName _ = Nothing
+
+
+foreignName :: Foreign -> Name
+foreignName (ImportF _ _ _ n _) = n
+foreignName (ExportF _ _ n _) = n
+
+
+unwindT :: Type -> [Type]
+unwindT = go
+  where go :: Type -> [Type]
+        go (ForallT _ _ t) = go t
+        go (AppT (AppT ArrowT t) t') = t : go t'
+        go _ = []
+
+
+unwindE :: Exp -> [Exp]
+unwindE = go []
+  where go acc (e `AppE` e') = go (e':acc) e
+        go acc e = e:acc
+
+
+-- | The arity of a Type.
+arityT :: Type -> Int
+arityT = go 0
+  where go :: Int -> Type -> Int
+        go n (ForallT _ _ t) = go n t
+        go n (AppT (AppT ArrowT _) t) =
+          let n' = n+1 in n' `seq` go n' t
+        go n _ = n
+
+typeToName :: Type -> Maybe Name
+typeToName t
+  | ConT n <- t = Just n
+  | ArrowT <- t = Just ''(->)
+  | ListT  <- t = Just ''[]
+  | TupleT n <- t = Just $ tupleTypeName n
+  | ForallT _ _ t' <- t = typeToName t'
+  | otherwise = Nothing
+
+-- | Randomly useful.
+nameSpaceOf :: Name -> Maybe NameSpace
+nameSpaceOf (Name _ (NameG ns _ _)) = Just ns
+nameSpaceOf _ = Nothing
+
+conName :: Con -> Name
+conName (RecC n _) = n
+conName (NormalC n _) = n
+conName (InfixC _ n _) = n
+conName (ForallC _ _ con) = conName con
+
+recCName :: Con -> Maybe Name
+recCName (RecC n _) = Just n
+recCName _ = Nothing
+
+dataDCons :: Dec -> [Con]
+dataDCons (DataD _ _ _ cons _) = cons
+dataDCons _ = []
+
+fromDataConI :: Info -> Q (Maybe Exp)
+fromDataConI (DataConI dConN ty tyConN fxty) =
+  let n = arityT ty
+  in replicateM n (newName "a")
+      >>= \ns -> return (Just (LamE
+                    [ConP dConN (fmap VarP ns)]
+                    (TupE $ fmap VarE ns)))
+fromDataConI _ = return Nothing
+
+fromTyConI :: Info -> Maybe Dec
+fromTyConI (TyConI dec) = Just dec
+fromTyConI _ = Nothing
+
+mkFunD :: Name -> [Pat] -> Exp -> Dec
+mkFunD f xs e = FunD f [Clause xs (NormalB e) []]
+
+mkClauseQ :: [PatQ] -> ExpQ -> ClauseQ
+mkClauseQ ps e = clause ps (normalB e) []
+
+-----------------------------------------------------------------------------
+
+-- | The strategy for producing QuasiQuoters which
+--  this datatype aims to facilitate is as follows.
+--  Given a collection of datatypes which make up
+--  the to-be-quasiquoted languages AST, make each
+--  type in this collection an instance of at least
+--  @Show@ and @Lift@. Now, assuming @parsePat@ and
+--  @parseExp@, both of type @String -> Q a@ (where @a@
+--  is the top level type of the AST), are the pair of
+--  functions you wish to use for parsing in pattern and
+--  expression context respectively, put them inside
+--  a @Quoter@ datatype and pass this to quasify.
+data Quoter a = Quoter
+  { expQ :: (Lift a) => String -> Q a
+  , patQ :: (Show a) => String -> Q a }
+
+quasify :: (Show a, Lift a) => Quoter a -> QuasiQuoter
+quasify q = QuasiQuoter
+              (toExpQ (expQ q))
+              (toPatQ (patQ q))
+
+toExpQ :: (Lift a) => (String -> Q a) -> (String -> ExpQ)
+toExpQ parseQ = (lift =<<) . parseQ
+
+toPatQ :: (Show a) => (String -> Q a) -> (String -> PatQ)
+toPatQ parseQ = (showToPatQ =<<) . parseQ
+
+showToPatQ :: (Show a) => a -> PatQ
+showToPatQ = either fail return . parsePat . show
+
+-----------------------------------------------------------------------------
+
+eitherQ :: (e -> String) -> Either e a -> Q a
+eitherQ toStr = either (fail . toStr) return
+
+-----------------------------------------------------------------------------
+
+
+
+
+normalizeT :: (Data a) => a -> a
+normalizeT = everywhere (mkT go)
+  where go :: Type -> Type
+        go (ConT n) | n == ''[] = ListT
+        go (AppT (TupleT 1) t) = t
+        go (ConT n) | n == ''(,) = TupleT 2
+        go (ConT n) | n == ''(,,) = TupleT 3
+        go (ConT n) | n == ''(,,,) = TupleT 4
+        go (ConT n) | n == ''(,,,,) = TupleT 5
+        go (ConT n) | n == ''(,,,,,) = TupleT 6
+        go (ConT n) | n == ''(,,,,,,) = TupleT 7
+        go (ConT n) | n == ''(,,,,,,,) = TupleT 8
+        go (ConT n) | n == ''(,,,,,,,,) = TupleT 9
+        go (ConT n) | n == ''(,,,,,,,,,) = TupleT 10
+        go (ConT n) | n == ''(,,,,,,,,,,) = TupleT 11
+        go (ConT n) | n == ''(,,,,,,,,,,,) = TupleT 12
+        go (ConT n) | n == ''(,,,,,,,,,,,,) = TupleT 13
+        go (ConT n) | n == ''(,,,,,,,,,,,,,) = TupleT 14
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,) = TupleT 15
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,) = TupleT 16
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,) = TupleT 17
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,) = TupleT 18
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,) = TupleT 19
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,) = TupleT 20
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,) = TupleT 21
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,) = TupleT 22
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,) = TupleT 23
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 24
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 25
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 26
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 27
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 28
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 29
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 30
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 31
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 32
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 33
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 34
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 35
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 36
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 37
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 38
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 39
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 40
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 41
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 42
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 43
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 44
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 45
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 46
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 47
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 48
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 49
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 50
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 51
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 52
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 53
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 54
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 55
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 56
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 57
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 58
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 59
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 60
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 61
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 62
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 63
+        go (ConT n) | n == ''(,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,) = TupleT 64
+        go t = t
+
+
+
+-----------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,106 @@
+{-# LANGUAGE TemplateHaskell, DeriveDataTypeable #-}
+
+module Language.Haskell.Meta.QQ.HsHere (here) where
+
+import Language.Haskell.Meta
+import Language.Haskell.TH.Lib
+import Language.Haskell.TH.Ppr
+import Language.Haskell.TH.Quote
+import Language.Haskell.TH.Syntax
+import Language.Haskell.Meta.Utils
+import Text.ParserCombinators.ReadP
+import Data.Typeable(Typeable)
+import Data.Generics(Data)
+
+data Here
+  = CodeH Exp
+  | TextH String
+  | ManyH [Here]
+  deriving (Eq,Show,Data,Typeable)
+
+here :: QuasiQuoter
+here = QuasiQuoter
+        {quoteExp = hereExpQ
+        ,quotePat = herePatQ}
+
+instance Lift Here
+  where lift = liftHere
+
+liftHere :: Here -> ExpQ
+liftHere (TextH s)  = (litE . stringL) s
+liftHere (CodeH e)  = [|show $(return e)|]
+liftHere (ManyH hs) = [|concat $(listE (fmap liftHere hs))|]
+
+
+hereExpQ :: String -> ExpQ
+hereExpQ s = case run s of
+              [] -> fail "here: parse error"
+              e:_ -> lift (cleanNames e)
+
+herePatQ :: String -> PatQ
+herePatQ s = do
+  e <- hereExpQ s
+  let p = (parsePat
+            . pprint
+              . cleanNames) e
+  case p of
+    Left e -> fail e
+    Right p -> return p
+
+run :: String -> [Here]
+run = fst . parse
+
+parse :: String -> ([Here], String)
+parse = runP hereP
+
+hereP :: ReadP Here
+hereP = (ManyH . mergeTexts)
+  `fmap` many (oneP =<< look)
+
+mergeTexts :: [Here] -> [Here]
+mergeTexts [] = []
+mergeTexts (TextH s:TextH t:hs)
+  = mergeTexts (TextH (s++t):hs)
+mergeTexts (h:hs) = h : mergeTexts hs
+
+oneP :: String -> ReadP Here
+oneP s
+  | [] <- s         = pfail
+  | '\\':'$':s <- s = do skip 2
+                         (TextH . ("\\$"++))
+                          `fmap` munch (/='\\')
+  | '$':'(':s <- s  = skip 2 >> go 1 [] s
+  | c:s <- s        = do skip 1
+                         (TextH . (c:))
+                          `fmap` munch (not.(`elem`"\\$"))
+  where go _ acc  []         = return (TextH (reverse acc))
+        go 1 []  (')':_) = skip 1 >> return (TextH "$()")
+        go 1 acc (')':_) = do skip (1 + length acc)
+                              let s = reverse acc
+                              either (const (return
+                                              (TextH s)))
+                                     (return . CodeH)
+                                     (parseExp s)
+        go n acc ('(':s)     = go (n+1) ('(':acc) s
+        go n acc (')':s)     = go (n-1) (')':acc) s
+        go n acc (c:s)       = go n (c:acc) s
+
+
+runP :: ReadP a -> String -> ([a], String)
+runP p s = case readP_to_S p s of
+              [] -> ([],[])
+              xs -> mapfst (:[]) (last xs)
+  where mapfst f (a,b) = (f a,b)
+skip :: Int -> ReadP ()
+skip n = count n get >> return ()
+lexemeP :: ReadP a -> ReadP a
+lexemeP p = p >>= \x -> skipSpaces >> return x
+nestedP :: (ReadP a -> ReadP a) -> (ReadP a -> ReadP a)
+nestedP nest p = p <++ nest (skipSpaces >> nestedP nest p)
+parensP  = between oparenP cparenP
+bracksP  = between oparenP cparenP
+oparenP  = char '('
+cparenP  = char ')'
+obrackP  = char '['
+cbrackP  = char ']'
+
