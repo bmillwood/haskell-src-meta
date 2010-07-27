@@ -11,9 +11,8 @@
 module Language.Haskell.Meta (
     module Language.Haskell.Meta.Parse
   , module Language.Haskell.Meta.Syntax
-  , module Language.Haskell.TH.Instances.Lift
 ) where
 
 import Language.Haskell.Meta.Parse
 import Language.Haskell.Meta.Syntax
-import Language.Haskell.TH.Instances.Lift
+import Language.Haskell.TH.Instances.Lift()

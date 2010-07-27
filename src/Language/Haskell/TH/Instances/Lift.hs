@@ -13,11 +13,8 @@
 module Language.Haskell.TH.Instances.Lift () where
 
 import Language.Haskell.TH.Syntax
-import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Ppr
 import Language.Haskell.TH.Lift
-import Data.List(intercalate)
-import GHC.Base
 
 deriving instance Ord Exp
 deriving instance Ord Dec

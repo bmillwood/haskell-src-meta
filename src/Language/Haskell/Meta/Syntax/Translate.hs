@@ -14,7 +14,6 @@ module Language.Haskell.Meta.Syntax.Translate (
 ) where
 
 import Data.Typeable
-import Data.Generics
 import Data.List (foldl')
 import Language.Haskell.TH.Syntax
 import qualified Language.Haskell.Exts.Syntax as Hs

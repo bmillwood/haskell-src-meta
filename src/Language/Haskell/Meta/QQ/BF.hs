@@ -6,12 +6,11 @@ module Language.Haskell.Meta.QQ.BF (
 
 import Language.Haskell.Meta
 import Language.Haskell.TH.Lib
-import Language.Haskell.TH.Ppr
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
 import Data.Char
-import Data.IntMap(IntMap,(!))
+import Data.IntMap(IntMap)
 import qualified Data.IntMap as IM
 
 
