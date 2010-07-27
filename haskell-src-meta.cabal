@@ -14,14 +14,10 @@ description:        The translation from haskell-src-exts abstract syntax
                     to template-haskell abstract syntax isn't 100% complete yet.
 
 library
-  build-Depends:      base == 4.*, containers,
-                      haskell-src-exts >= 1.2.0 && < 1.3,
-                      packedstring, template-haskell, pretty, syb
-  extensions:         TemplateHaskell, QuasiQuotes,
-                      RankNTypes, StandaloneDeriving,
-                      FlexibleInstances, FlexibleContexts,
-                      TypeSynonymInstances, PatternGuards
-                      DeriveDataTypeable
+  build-depends:      base == 4.2.*, containers == 0.3.*,
+                      haskell-src-exts == 1.9.*,
+                      template-haskell == 2.4.*,
+                      pretty == 1.0.*, syb == 0.2.*
   ghc-options:        -O2
   hs-source-dirs:     src
   exposed-modules:    Language.Haskell.Meta,
