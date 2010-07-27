@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, PatternGuards, TemplateHaskell #-}
 
 module Language.Haskell.Meta.QQ.SKI (SKI(..),ski) where
 

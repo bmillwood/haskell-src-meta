@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, RankNTypes, StandaloneDeriving,
+{-# LANGUAGE TemplateHaskell, RankNTypes, StandaloneDeriving, PatternGuards,
              FlexibleContexts, FlexibleInstances, TypeSynonymInstances #-}
 
 -- | This module is a staging ground

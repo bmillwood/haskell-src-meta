@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, DeriveDataTypeable #-}
+{-# LANGUAGE DeriveDataTypeable, PatternGuards, TemplateHaskell #-}
 
 module Language.Haskell.Meta.QQ.HsHere (here) where
 
