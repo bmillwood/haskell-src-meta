@@ -135,6 +135,7 @@ instance ToLit Hs.Literal where
   toLit (Hs.PrimChar a) = CharL a      -- XXX
   toLit (Hs.PrimString a) = StringL a  -- XXX
   toLit (Hs.PrimInt a) = IntPrimL a
+  toLit (Hs.PrimWord a) = WordPrimL a
   toLit (Hs.PrimFloat a) = FloatPrimL a
   toLit (Hs.PrimDouble a) = DoublePrimL a
 
@@ -170,6 +171,7 @@ Right (HsPParen (HsPNeg (HsPLit (HsInt 2))))
   toPat (Hs.PXETag _ _ _ pM) = error "toPat: HsPXETag not supported"
   toPat (Hs.PXPcdata _) = error "toPat: HsPXPcdata not supported"
   toPat (Hs.PXPatTag p) = error "toPat: HsPXPatTag not supported"
+  toPat (Hs.PBangPat p) = BangP (toPat p)
 
 -----------------------------------------------------------------------------
 

@@ -45,6 +45,7 @@ instance Vars Pat Name where
   vars (ConP n ps) = n `S.insert` vars ps
   vars (InfixP p n q) = n `S.insert` vars [p,q]
   vars (TildeP p) = vars p
+  vars (BangP p) = vars p
   vars (AsP n p) = n `S.insert` vars p
   vars (WildP) = S.empty
   vars (RecP n pfs) = (n `S.insert`) . vars . fmap snd $ pfs
@@ -56,6 +57,7 @@ instance Vars Pat Name where
   bvs (ConP _ ps) = bvs ps
   bvs (InfixP p _ q) = bvs [p,q]
   bvs (TildeP p) = bvs p
+  bvs (BangP p) = bvs p
   bvs (AsP n p) = n `S.insert` bvs p
   bvs (WildP) = S.empty
   bvs (RecP _ pfs) = bvs . fmap snd $ pfs
