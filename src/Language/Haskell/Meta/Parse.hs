@@ -40,6 +40,7 @@ myDefaultParseMode :: ParseMode
 myDefaultParseMode = ParseMode
   {parseFilename = []
   ,extensions = myDefaultExtensions
+  ,ignoreLinePragmas = False
   ,ignoreLanguagePragmas = False
   ,fixities = baseFixities}
 
