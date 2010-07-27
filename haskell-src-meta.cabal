@@ -1,5 +1,5 @@
 name:               haskell-src-meta
-version:            0.0.6
+version:            0.1.0
 cabal-version:      >= 1.6
 build-type:         Simple
 license:            BSD3
@@ -7,7 +7,7 @@ license-file:       LICENSE
 category:           Language
 author:             Matt Morrow
 copyright:          (c) Matt Morrow
-maintainer:         Matt Morrow <mjm2002@gmail.com>
+maintainer:         Ben Millwood <haskell@benmachine.co.uk>
 stability:          experimental
 synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
