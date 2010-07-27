@@ -15,6 +15,7 @@ import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Ppr
+import Language.Haskell.TH.Lift
 import Text.PrettyPrint
 import Control.Monad
 
@@ -121,17 +122,25 @@ myNames = let xs = fmap (:[]) ['a'..'z']
               ys = iterate (join (zipWith (++))) xs
            in fmap mkName (concat ys)
 
-
+-- | renameT applied to a list of types
+renameTs :: [(Name, Name)] -> [Name] -> [Type] -> [Type]
+  -> ([Type], [(Name,Name)], [Name])
 renameTs env new acc [] = (reverse acc, env, new)
 renameTs env new acc (t:ts) =
   let (t',env',new') = renameT env new t
   in renameTs env' new' (t':acc) ts
 
+-- | Rename type variables in the Type according to the given association
+-- list. Normalise constructor names (remove qualification, etc.)
+-- If a name is not found in the association list, replace it with one from
+-- the fresh names list, and add this translation to the returned list.
+-- The fresh names list should be infinite; myNames is a good example.
 renameT :: [(Name, Name)] -> [Name] -> Type -> (Type, [(Name,Name)], [Name])
+renameT env [] _ = error "renameT: ran out of names!"
 renameT env (x:new) (VarT n)
  | Just n' <- lookup n env = (VarT n',env,x:new)
  | otherwise = (VarT x, (n,x):env, new) 
-renameT env new (ConT n) = (ConT ((mkName . nameBase) n), env, new)
+renameT env new (ConT n) = (ConT (normaliseName n), env, new)
 renameT env new t@(TupleT {}) = (t,env,new)
 renameT env new ArrowT = (ArrowT,env,new)
 renameT env new ListT = (ListT,env,new)
@@ -139,24 +148,35 @@ renameT env new (AppT t t') = let (s,env',new') = renameT env new t
                                   (s',env'',new'') = renameT env' new' t'
                               in (AppT s s', env'', new'')
 renameT env new (ForallT ns cxt t) =
-  let unVarT (VarT n) = n
-      (ns',env2,new2) = renameTs env new [] (fmap VarT ns)
+  let unVarT (VarT n) = PlainTV n -- dropping kinds here
+      (ns',env2,new2) = renameTs env new [] (fmap (VarT . toName) ns)
       ns'' = fmap unVarT ns'
-      (cxt',env3,new3) = renameTs env2 new2 [] cxt
+      renameCs env new acc [] = (reverse acc, env, new)
+      renameCs env new acc (ClassP n ts:cs) =
+        let (ts', env', new') = renameTs env new [] ts
+        in renameCs env' new' (ClassP (normaliseName n) ts' : acc) cs
+      renameCs env new acc (EqualP t1 t2:cs) =
+        let (t1', env', new') = renameT env new t1
+            (t2', env'', new'') = renameT env' new' t2
+        in renameCs env'' new'' (EqualP t1' t2' : acc) cs
+      (cxt',env3,new3) = renameCs env2 new2 [] cxt
       (t',env4,new4) = renameT env3 new3 t
   in (ForallT ns'' cxt' t', env4, new4)
 
-
+-- | Remove qualification, etc.
+normaliseName :: Name -> Name
+normaliseName = mkName . nameBase
 
 applyT :: Type -> Type -> Type
 applyT (ForallT [] _ t) t' = t `AppT` t'
-applyT (ForallT (n:ns) cxt t) t' = ForallT ns cxt (substT [(n,t')] ns t)
+applyT (ForallT (n:ns) cxt t) t' = ForallT ns cxt
+  (substT [(toName n,t')] (fmap toName ns) t)
 applyT t t' = t `AppT` t'
 
 
 
 substT :: [(Name, Type)] -> [Name] -> Type -> Type
-substT env bnd (ForallT ns _ t) = substT env (ns++bnd) t
+substT env bnd (ForallT ns _ t) = substT env (fmap toName ns++bnd) t
 substT env bnd t@(VarT n)
   | n `elem` bnd = t
   | otherwise = maybe t id (lookup n env)
@@ -166,29 +186,6 @@ substT _ _ t = t
 
 
 
-
-
--- | Stolen from Igloo's th-lift.
-deriveLift :: Name -> Q Dec
-deriveLift n
- = do i <- reify n
-      case i of
-        TyConI (DataD _ _ vs cons _) ->
-          let ctxt = cxt [conT ''Lift `appT` varT v | v <- vs]
-              typ = foldl appT (conT n) $ map varT vs
-              fun = funD 'lift (map doCons cons)
-          in instanceD ctxt (conT ''Lift `appT` typ) [fun]
-        _ -> error (modName ++ ".deriveLift: unhandled: " ++ pprint i)
-  where modName :: String
-        modName = "Language.Haskell.TH.Utils"
-        doCons :: Con -> Q Clause
-        doCons (NormalC c sts) = do
-          let ns = zipWith (\_ i -> "x" ++ show i) sts [0..]
-              con = [| conE c |]
-              args = [ [| lift $(varE (mkName n)) |] | n <- ns ]
-              e = foldl (\e1 e2 -> [| appE $e1 $e2 |]) con args
-          clause [conP c (map (varP . mkName) ns)] (normalB e) []
-        doCons c = error (modName ++ ".doCons: Unhandled constructor: " ++ pprint c)
 
 
 
@@ -233,7 +230,7 @@ decCons (NewtypeD _ _ _ con _) = [con]
 decCons _ = []
 
 
-decTyVars :: Dec -> [Name]
+decTyVars :: Dec -> [TyVarBndr]
 decTyVars (DataD _ _ ns _ _) = ns
 decTyVars (NewtypeD _ _ ns _ _) = ns
 decTyVars (TySynD _ ns _) = ns
