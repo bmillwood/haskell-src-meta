@@ -1,5 +1,5 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
-
+{-# LANGUAGE FlexibleContexts, FlexibleInstances,
+  MultiParamTypeClasses #-}
 {- |
   Module      :  Language.Haskell.Meta.Syntax.Vars
   Copyright   :  (c) Matt Morrow 2008
