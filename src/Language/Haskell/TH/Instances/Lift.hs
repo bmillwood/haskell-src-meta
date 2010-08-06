@@ -14,7 +14,7 @@ module Language.Haskell.TH.Instances.Lift () where
 
 import Language.Haskell.TH.Syntax
 import Language.Haskell.TH.Ppr
-import Language.Haskell.TH.Lift
+import Language.Haskell.TH.Lift (deriveLiftMany)
 
 deriving instance Ord Exp
 deriving instance Ord Dec
@@ -50,12 +50,7 @@ instance Ppr Loc where
 instance Ppr Lit where
   ppr l = ppr (LitE l)
 
--- comic relief from HERA
-instance Lift Rational where lift _ = error "Rational.. what are you doing!"
-
-deriveLift ''()
-
-fmap concat $ mapM deriveLift [''Body, ''Callconv, ''Clause, ''Con, ''Dec,
+deriveLiftMany [''Body, ''Callconv, ''Clause, ''Con, ''Dec,
   ''Exp, ''FamFlavour, ''Fixity, ''FixityDirection, ''Foreign, ''FunDep,
   ''Guard, ''Info, ''InlineSpec, ''Kind, ''Lit, ''Match, ''Pat, ''Pragma,
   ''Pred, ''Range, ''Safety, ''Stmt, ''Strict, ''Type, ''TyVarBndr]
