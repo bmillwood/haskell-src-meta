@@ -34,3 +34,7 @@ library
                       Language.Haskell.Meta.QQ.BF,
                       Language.Haskell.Meta.QQ.SKI
 
+source-repository head
+  type:     git
+  location: git://github.com/benmachine/haskell-src-meta.git
+
