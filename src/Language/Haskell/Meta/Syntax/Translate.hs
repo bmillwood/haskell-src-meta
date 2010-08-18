@@ -14,7 +14,7 @@ module Language.Haskell.Meta.Syntax.Translate (
 ) where
 
 import Data.Typeable
-import Data.List (foldl')
+import Data.List (foldl', nub, (\\))
 import Language.Haskell.TH.Syntax
 import qualified Language.Haskell.Exts.Syntax as Hs
 
@@ -26,6 +26,7 @@ class ToLit  a where toLit  :: a -> Lit
 class ToType a where toType :: a -> Type
 class ToPat  a where toPat  :: a -> Pat
 class ToExp  a where toExp  :: a -> Exp
+class ToDecs a where toDecs :: a -> [Dec]
 class ToDec  a where toDec  :: a -> Dec
 class ToStmt a where toStmt :: a -> Stmt
 class ToLoc  a where toLoc  :: a -> Loc
@@ -241,6 +242,7 @@ data HsBracket
   | HsDeclBracket [HsDecl]
 data HsSplice = HsIdSplice String | HsParenSplice HsExp -}
   toExp (Hs.SpliceExp spl) = toExp spl
+  toExp (Hs.Case e alts) = CaseE (toExp e) (map toMatch alts)
   toExp e = error $ errorMsg "toExp" e
 
 
@@ -248,6 +250,10 @@ instance ToExp Hs.Splice where
   toExp (Hs.IdSplice s) = VarE (toName s)
   toExp (Hs.ParenSplice e) = toExp e
 
+toMatch (Hs.Alt _ p galts ds) = Match (toPat p) (toBody galts) (toDecs ds)
+toBody (Hs.UnGuardedAlt  e) = NormalB $ toExp e
+toBody (Hs.GuardedAlts alts) = GuardedB $ map toGuard alts
+toGuard (Hs.GuardedAlt _ ([Hs.Qualifier e1]) e2) = (NormalG $ toExp e1,toExp e2)
 
 -----------------------------------------------------------------------------
 
@@ -391,6 +397,9 @@ hsQualConDeclToCon (HsQualConDecl _ tvbs cxt condec) =
     HsConDecl n bangs ->
     HsRecDecl n assocs ->
 -}
+
+
+
 
 instance ToDec Hs.Decl where
   toDec (Hs.TypeDecl _ n ns t)
@@ -553,6 +562,38 @@ hsStmtToGuard :: Hs.Stmt -> Guard
 hsStmtToGuard (Hs.Generator _ p e) = PatG [BindS (toPat p) (toExp e)]
 hsStmtToGuard (Hs.Qualifier e)     = NormalG (toExp e)
 hsStmtToGuard a@(Hs.LetStmt _)     = error $ errorMsg "hsStmtToGuardExp" a
+
+
+-----------------------------------------------------------------------------
+
+-- * ToDecs HsDecl HsBinds
+
+instance ToDecs Hs.Decl where
+  toDecs a@(Hs.InfixDecl _ asst i ops)    = [] -- HACK
+  toDecs (Hs.InlineSig _ _ _ _)  = []          -- HACK
+  toDecs a@(Hs.TypeSig _ ns t)
+    = let xs = fmap (flip SigD (fixForall $ toType t) . toName) ns
+       in xs
+
+
+  toDecs a = [toDec a]
+
+collectVars e = case e of
+  VarT n -> [PlainTV n]
+  AppT t1 t2 -> nub $ collectVars t1 ++ collectVars t2
+  ForallT ns _ t -> collectVars t \\ ns
+  _          -> []
+
+fixForall t = case vs of
+  [] -> t
+  _  -> ForallT vs [] t
+  where vs = collectVars t
+
+instance ToDecs a => ToDecs [a] where
+  toDecs a = concatMap toDecs a
+
+instance ToDecs Hs.Binds where
+  toDecs (Hs.BDecls ds) = toDecs ds
 
 
 -----------------------------------------------------------------------------
