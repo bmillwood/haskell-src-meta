@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, TypeSynonymInstances #-}
+{-# LANGUAGE CPP, TemplateHaskell, TypeSynonymInstances #-}
 
 {- |
   Module      :  Language.Haskell.Meta.Syntax.Translate
@@ -15,7 +15,9 @@ module Language.Haskell.Meta.Syntax.Translate (
 
 import Data.Typeable
 import Data.List (foldl', nub, (\\))
+import Language.Haskell.TH.Compat
 import Language.Haskell.TH.Syntax
+import Language.Haskell.TH.Lib
 import qualified Language.Haskell.Exts.Syntax as Hs
 
 -----------------------------------------------------------------------------
@@ -135,9 +137,11 @@ instance ToLit Hs.Literal where
   toLit (Hs.PrimChar a) = CharL a      -- XXX
   toLit (Hs.PrimString a) = StringL a  -- XXX
   toLit (Hs.PrimInt a) = IntPrimL a
-  toLit (Hs.PrimWord a) = WordPrimL a
   toLit (Hs.PrimFloat a) = FloatPrimL a
   toLit (Hs.PrimDouble a) = DoublePrimL a
+#if MIN_VERSION_template_haskell(2,4,0)
+  toLit (Hs.PrimWord a) = WordPrimL a
+#endif /* MIN_VERSION_template_haskell(2,4,0) */
 
 
 -----------------------------------------------------------------------------
@@ -171,7 +175,9 @@ Right (HsPParen (HsPNeg (HsPLit (HsInt 2))))
   toPat (Hs.PXETag _ _ _ pM) = error "toPat: HsPXETag not supported"
   toPat (Hs.PXPcdata _) = error "toPat: HsPXPcdata not supported"
   toPat (Hs.PXPatTag p) = error "toPat: HsPXPatTag not supported"
+#if MIN_VERSION_template_haskell(2,4,0)
   toPat (Hs.PBangPat p) = BangP (toPat p)
+#endif /* MIN_VERSION_template_haskell(2,4,0) */
 
 -----------------------------------------------------------------------------
 
@@ -228,7 +234,7 @@ data HsExp
   toExp (Hs.EnumFromThenTo e f g)  = ArithSeqE $ FromThenToR (toExp e) (toExp f) (toExp g)
   toExp (Hs.ExpTypeSig _ e t)      = SigE (toExp e) (toType t)
   --  HsListComp HsExp [HsStmt]
-  -- toExp (HsListComp e ss) = CompE 
+  -- toExp (HsListComp e ss) = CompE
   -- NEED: a way to go e -> Stmt
   toExp a@(Hs.ListComp e ss)       = error $ errorMsg "toExp" a
 {- HsVarQuote HsQName
@@ -302,19 +308,30 @@ instance ToName Hs.TyVarBind where
   toName (Hs.UnkindedVar n) = toName n
 
 instance ToName TyVarBndr where
+#if MIN_VERSION_template_haskell(2,4,0)
   toName (PlainTV n) = n
   toName (KindedTV n _) = n
+#else /* !MIN_VERSION_template_haskell(2,4,0) */
+  toName n = n
+#endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
+#if MIN_VERSION_template_haskell(2,4,0)
 toKind :: Hs.Kind -> Kind
 toKind Hs.KindStar = StarK
 toKind (Hs.KindFn k1 k2) = ArrowK (toKind k1) (toKind k2)
 toKind (Hs.KindParen kp) = toKind kp
 toKind Hs.KindBang = error "toKind: HsKindBang not supported"
 toKind (Hs.KindVar _) = error "toKind: HsKindVar not supported"
+#endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 toTyVar :: Hs.TyVarBind -> TyVarBndr
+#if MIN_VERSION_template_haskell(2,4,0)
 toTyVar (Hs.KindedVar n k) = KindedTV (toName n) (toKind k)
 toTyVar (Hs.UnkindedVar n) = PlainTV (toName n)
+#else /* !MIN_VERSION_template_haskell(2,4,0) */
+toTyVar (Hs.KindedVar n _) = toName n
+toTyVar (Hs.UnkindedVar n) = toName n
+#endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 {- |
 TH does't handle
@@ -350,10 +367,17 @@ TH doesn't handle:
 toCxt :: Hs.Context -> Cxt
 toCxt = fmap toPred
  where
+#if MIN_VERSION_template_haskell(2,4,0)
   toPred (Hs.ClassA n ts) = ClassP (toName n) (fmap toType ts)
   toPred (Hs.InfixA t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
   toPred (Hs.EqualP t1 t2) = EqualP (toType t1) (toType t2)
-  toPred a@(Hs.IParam _ _) = error $ errorMsg "toType" a
+  toPred a@(Hs.IParam _ _) = error $ errorMsg "toPred" a
+#else /* !MIN_VERSION_template_haskell(2,4,0) */
+  toPred (Hs.ClassA n ts) = foldAppT (ConT (toName n)) (fmap toType ts)
+  toPred (Hs.InfixA t1 n t2) = foldAppT (ConT (toName n)) (fmap toType [t1, t2])
+  toPred a@(Hs.EqualP _ _) = error $ errorMsg "toPred" a
+  toPred a@(Hs.IParam _ _) = error $ errorMsg "toPred" a
+#endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 foldAppT :: Type -> [Type] -> Type
 foldAppT t ts = foldl' AppT t ts
@@ -454,7 +478,7 @@ instance ToDec Hs.Decl where
   toDec a@(Hs.InfixDecl _ asst i ops)                  = error $ errorMsg "toDec" a
   toDec a@(Hs.ClassDecl _ cxt n ns funDeps cDecs)      = error $ errorMsg "toDec" a
   toDec a@(Hs.InstDecl _ cxt qn ts instDecs)           = error $ errorMsg "toDec" a
-  toDec a@(Hs.DerivDecl _ cxt qn ts)                   = error $ errorMsg "toDec" a  
+  toDec a@(Hs.DerivDecl _ cxt qn ts)                   = error $ errorMsg "toDec" a
   toDec a@(Hs.DefaultDecl _ ts)                        = error $ errorMsg "toDec" a
   toDec a@(Hs.SpliceDecl _ s)                          = error $ errorMsg "toDec" a
   -- This type-signature conversion is just wrong. 
@@ -582,7 +606,11 @@ instance ToDecs Hs.Decl where
   toDecs a = [toDec a]
 
 collectVars e = case e of
+#if MIN_VERSION_template_haskell(2,4,0)
   VarT n -> [PlainTV n]
+#else /* !MIN_VERSION_template_haskell(2,4,0) */
+  VarT n -> [n]
+#endif /* !MIN_VERSION_template_haskell(2,4,0) */
   AppT t1 t2 -> nub $ collectVars t1 ++ collectVars t2
   ForallT ns _ t -> collectVars t \\ ns
   _          -> []

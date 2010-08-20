@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE StandaloneDeriving, TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
@@ -20,13 +21,7 @@ deriving instance Ord Exp
 deriving instance Ord Dec
 deriving instance Ord Stmt
 deriving instance Ord Type
-deriving instance Ord TyVarBndr
-deriving instance Ord Pred
-deriving instance Ord Kind
-deriving instance Ord FamFlavour
 deriving instance Ord Foreign
-deriving instance Ord InlineSpec
-deriving instance Ord Pragma
 deriving instance Ord FunDep
 deriving instance Ord Con
 deriving instance Ord Body
@@ -40,6 +35,15 @@ deriving instance Ord Match
 deriving instance Ord Pat
 deriving instance Ord Lit
 
+#if MIN_VERSION_template_haskell(2,4,0)
+deriving instance Ord TyVarBndr
+deriving instance Ord Pred
+deriving instance Ord Kind
+deriving instance Ord FamFlavour
+deriving instance Ord InlineSpec
+deriving instance Ord Pragma
+#endif /* MIN_VERSION_template_haskell(2,4,0) */
+
 deriving instance Show Loc
 deriving instance Eq Loc
 
@@ -50,8 +54,33 @@ instance Ppr Loc where
 instance Ppr Lit where
   ppr l = ppr (LitE l)
 
-deriveLiftMany [''Body, ''Callconv, ''Clause, ''Con, ''Dec,
-  ''Exp, ''FamFlavour, ''Fixity, ''FixityDirection, ''Foreign, ''FunDep,
-  ''Guard, ''Info, ''InlineSpec, ''Kind, ''Lit, ''Match, ''Pat, ''Pragma,
-  ''Pred, ''Range, ''Safety, ''Stmt, ''Strict, ''Type, ''TyVarBndr]
+$(deriveLiftMany [ ''Body
+                 , ''Callconv
+                 , ''Clause
+                 , ''Con
+                 , ''Dec
+                 , ''Exp
+                 , ''Fixity
+                 , ''FixityDirection
+                 , ''Foreign
+                 , ''FunDep
+                 , ''Guard
+                 , ''Info
+                 , ''Lit
+                 , ''Match
+                 , ''Pat
+                 , ''Range
+                 , ''Safety
+                 , ''Stmt
+                 , ''Strict
+                 , ''Type
+#if MIN_VERSION_template_haskell(2,4,0)
+                 , ''FamFlavour
+                 , ''InlineSpec
+                 , ''Kind
+                 , ''Pragma
+                 , ''Pred
+                 , ''TyVarBndr
+#endif /* MIN_VERSION_template_haskell(2,4,0) */
+                 ])
 

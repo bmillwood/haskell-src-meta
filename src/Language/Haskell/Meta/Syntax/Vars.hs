@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts, FlexibleInstances,
   MultiParamTypeClasses #-}
 {- |
@@ -45,24 +46,29 @@ instance Vars Pat Name where
   vars (ConP n ps) = n `S.insert` vars ps
   vars (InfixP p n q) = n `S.insert` vars [p,q]
   vars (TildeP p) = vars p
-  vars (BangP p) = vars p
   vars (AsP n p) = n `S.insert` vars p
   vars (WildP) = S.empty
   vars (RecP n pfs) = (n `S.insert`) . vars . fmap snd $ pfs
   vars (ListP ps) = vars ps
   vars (SigP p _) = vars p
+#if MIN_VERSION_template_haskell(2,4,0)
+  vars (BangP p) = vars p
+#endif /* MIN_VERSION_template_haskell(2,4,0) */
+
   bvs (LitP _) = S.empty
   bvs (VarP n) = S.singleton n
   bvs (TupP ps) = bvs ps
   bvs (ConP _ ps) = bvs ps
   bvs (InfixP p _ q) = bvs [p,q]
   bvs (TildeP p) = bvs p
-  bvs (BangP p) = bvs p
   bvs (AsP n p) = n `S.insert` bvs p
   bvs (WildP) = S.empty
   bvs (RecP _ pfs) = bvs . fmap snd $ pfs
   bvs (ListP ps) = bvs ps
   bvs (SigP p _)  = bvs p
+#if MIN_VERSION_template_haskell(2,4,0)
+  bvs (BangP p) = bvs p
+#endif /* MIN_VERSION_template_haskell(2,4,0) */
 
 
 instance Vars Range Name where

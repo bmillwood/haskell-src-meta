@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell, RankNTypes, StandaloneDeriving,
   DeriveDataTypeable, PatternGuards, FlexibleContexts, FlexibleInstances,
   TypeSynonymInstances #-}
@@ -12,11 +13,11 @@ import Data.Generics hiding(Fixity)
 import Language.Haskell.Meta
 import System.IO.Unsafe(unsafePerformIO)
 import Language.Haskell.Exts.Pretty(prettyPrint)
+import Language.Haskell.TH.Compat
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Ppr
-import Language.Haskell.TH.Lift
 import Text.PrettyPrint
 import Control.Monad
 
@@ -140,7 +141,7 @@ renameT :: [(Name, Name)] -> [Name] -> Type -> (Type, [(Name,Name)], [Name])
 renameT env [] _ = error "renameT: ran out of names!"
 renameT env (x:new) (VarT n)
  | Just n' <- lookup n env = (VarT n',env,x:new)
- | otherwise = (VarT x, (n,x):env, new) 
+ | otherwise = (VarT x, (n,x):env, new)
 renameT env new (ConT n) = (ConT (normaliseName n), env, new)
 renameT env new t@(TupleT {}) = (t,env,new)
 renameT env new ArrowT = (ArrowT,env,new)
@@ -149,20 +150,46 @@ renameT env new (AppT t t') = let (s,env',new') = renameT env new t
                                   (s',env'',new'') = renameT env' new' t'
                               in (AppT s s', env'', new'')
 renameT env new (ForallT ns cxt t) =
-  let unVarT (VarT n) = PlainTV n -- dropping kinds here
-      (ns',env2,new2) = renameTs env new [] (fmap (VarT . toName) ns)
-      ns'' = fmap unVarT ns'
-      renameCs env new acc [] = (reverse acc, env, new)
-      renameCs env new acc (ClassP n ts:cs) =
-        let (ts', env', new') = renameTs env new [] ts
-        in renameCs env' new' (ClassP (normaliseName n) ts' : acc) cs
-      renameCs env new acc (EqualP t1 t2:cs) =
-        let (t1', env', new') = renameT env new t1
-            (t2', env'', new'') = renameT env' new' t2
-        in renameCs env'' new'' (EqualP t1' t2' : acc) cs
-      (cxt',env3,new3) = renameCs env2 new2 [] cxt
-      (t',env4,new4) = renameT env3 new3 t
-  in (ForallT ns'' cxt' t', env4, new4)
+    let (ns',env2,new2) = renameTs env new [] (fmap (VarT . toName) ns)
+        ns'' = fmap unVarT ns'
+        (cxt',env3,new3) = renamePreds env2 new2 [] cxt
+        (t',env4,new4) = renameT env3 new3 t
+    in (ForallT ns'' cxt' t', env4, new4)
+  where
+    unVarT :: Type -> TyVarBndr
+#if MIN_VERSION_template_haskell(2,4,0)
+    unVarT (VarT n) = PlainTV n
+#else /* !MIN_VERSION_template_haskell(2,4,0) */
+    unVarT (VarT n) = n
+#endif /* !MIN_VERSION_template_haskell(2,4,0) */
+
+renamePred  ::  [(Name, Name)]
+            ->  [Name]
+            ->  Pred
+            ->  (Pred, [(Name,Name)], [Name])
+#if MIN_VERSION_template_haskell(2,4,0)
+renamePred env new (ClassP n ts) =
+    let (ts', env1, new1) = renameTs env new [] ts
+    in (ClassP (normaliseName n) ts', env1, new1)
+
+renamePred env new (EqualP t1 t2) =
+    let (t1', env1, new1) = renameT env new t1
+        (t2', env2, new2) = renameT env1 new1 t2
+    in (EqualP t1' t2', env2, new2)
+#else /* !MIN_VERSION_template_haskell(2,4,0) */
+renamePred env new pred =
+    renameT env new pred
+#endif /* !MIN_VERSION_template_haskell(2,4,0) */
+
+renamePreds  ::  [(Name, Name)]
+             ->  [Name]
+             ->  [Pred]
+             ->  [Pred]
+             ->  ([Pred], [(Name,Name)], [Name])
+renamePreds env new acc [] = (reverse acc, env, new)
+renamePreds env new acc (t:ts) =
+    let (t',env',new') = renamePred env new t
+    in renamePreds env' new' (t':acc) ts
 
 -- | Remove qualification, etc.
 normaliseName :: Name -> Name
@@ -189,7 +216,7 @@ substT _ _ t = t
 
 
 
-
+{-
 -- | Produces pretty code suitable
 --  for human consumption.
 deriveLiftPretty :: Name -> Q String
@@ -198,7 +225,7 @@ deriveLiftPretty n = do
   case (parseHsDecls . pprint . cleanNames) decs of
     Left e -> fail ("deriveLiftPretty: error while prettifying code: "++e)
     Right hsdecs -> return (unlines . fmap prettyPrint $ hsdecs)
-
+-}
 
 
 
