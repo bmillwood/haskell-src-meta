@@ -32,7 +32,7 @@ parseType :: String -> Either String Type
 parseType = either Left (Right . toType) . parseHsType
 
 parseDecs :: String -> Either String [Dec]
-parseDecs  = either Left (Right . fmap toDec) . parseHsDecls
+parseDecs  = either Left (Right . toDecs) . parseHsDecls
 
 -----------------------------------------------------------------------------
 

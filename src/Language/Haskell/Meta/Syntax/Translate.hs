@@ -457,11 +457,14 @@ instance ToDec Hs.Decl where
   toDec a@(Hs.DerivDecl _ cxt qn ts)                   = error $ errorMsg "toDec" a  
   toDec a@(Hs.DefaultDecl _ ts)                        = error $ errorMsg "toDec" a
   toDec a@(Hs.SpliceDecl _ s)                          = error $ errorMsg "toDec" a
+  -- This type-signature conversion is just wrong. 
+  -- Type variables need to be dealt with. /Jonas
   toDec a@(Hs.TypeSig _ ns t)
     -- XXXXXXXXXXXXXX: oh crap, we can't return a [Dec] from this class!
     = let xs = fmap (flip SigD (toType t) . toName) ns
       in case xs of x:_ -> x; [] -> error "toDec: malformed TypeSig!"
-
+  toDec (Hs.InlineSig _ b act id) = PragmaD $ 
+    InlineP (toName id) (InlineSpec True False Nothing)
 
 {- data HsDecl = ... | HsFunBind [HsMatch] | ...
 data HsMatch = HsMatch SrcLoc HsName [HsPat] HsRhs HsBinds
@@ -480,7 +483,7 @@ LetE [ValD (VarP x_0) (NormalB (LitE (IntegerL 2))) []] (VarE x_0) -}
   toDec a@(Hs.ForImp _ cconv safe str n t)             = error $ errorMsg "toDec" a
   toDec a@(Hs.ForExp _ cconv      str n t)             = error $ errorMsg "toDec" a
 
-
+  toDec x = error $ "toDec: Untranslatable declaration:" ++ (show x)
 
 
 -- data Hs.Decl = ... | Hs.SpliceDecl Hs.SrcLoc Hs.Splice | ...
@@ -569,8 +572,8 @@ hsStmtToGuard a@(Hs.LetStmt _)     = error $ errorMsg "hsStmtToGuardExp" a
 -- * ToDecs HsDecl HsBinds
 
 instance ToDecs Hs.Decl where
-  toDecs a@(Hs.InfixDecl _ asst i ops)    = [] -- HACK
-  toDecs (Hs.InlineSig _ _ _ _)  = []          -- HACK
+--  toDecs a@(Hs.InfixDecl _ asst i ops)    = [] -- HACK
+--  toDecs (Hs.InlineSig _ _ _ _)  = []          -- HACK
   toDecs a@(Hs.TypeSig _ ns t)
     = let xs = fmap (flip SigD (fixForall $ toType t) . toName) ns
        in xs
