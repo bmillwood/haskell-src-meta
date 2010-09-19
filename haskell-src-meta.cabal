@@ -14,9 +14,9 @@ description:        The translation from haskell-src-exts abstract syntax
                     to template-haskell abstract syntax isn't 100% complete yet.
 
 library
-  build-depends:      base >= 4.1, containers >= 0.2,
+  build-depends:      base >= 4.1 && < 4.3, containers >= 0.2 && < 0.4,
                       haskell-src-exts >= 1.6 && < 1.10,
-                      template-haskell > 2.3 && < 2.5,
+                      template-haskell >= 2.3 && < 2.5,
                       pretty == 1.0.*, syb >= 0.1 && < 0.2
   hs-source-dirs:     src
   exposed-modules:    Language.Haskell.Meta,
@@ -32,6 +32,8 @@ library
                       Language.Haskell.Meta.QQ.Idiom,
                       Language.Haskell.Meta.QQ.BF,
                       Language.Haskell.Meta.QQ.SKI
+  other-modules:      Language.Haskell.TH.Compat,
+                      Language.Haskell.TH.Lift
 
 source-repository head
   type:     git
