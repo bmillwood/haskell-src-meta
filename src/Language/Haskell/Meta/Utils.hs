@@ -13,7 +13,6 @@ import Data.Generics hiding(Fixity)
 import Language.Haskell.Meta
 import System.IO.Unsafe(unsafePerformIO)
 import Language.Haskell.Exts.Pretty(prettyPrint)
-import Language.Haskell.TH.Compat
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 import Language.Haskell.TH.Lib
@@ -118,19 +117,22 @@ mkVarT :: String -> TypeQ
 mkVarT = varT . mkName
 
 
-
+-- | Infinite list of names composed of lowercase letters
 myNames :: [Name]
 myNames = let xs = fmap (:[]) ['a'..'z']
               ys = iterate (join (zipWith (++))) xs
            in fmap mkName (concat ys)
 
+-- | Generalisation of renameTs
+renameThings _ env new acc [] = (reverse acc, env, new)
+renameThings f env new acc (t:ts) =
+  let (t', env', new') = f env new t
+  in renameThings f env' new' (t':acc) ts
+
 -- | renameT applied to a list of types
 renameTs :: [(Name, Name)] -> [Name] -> [Type] -> [Type]
   -> ([Type], [(Name,Name)], [Name])
-renameTs env new acc [] = (reverse acc, env, new)
-renameTs env new acc (t:ts) =
-  let (t',env',new') = renameT env new t
-  in renameTs env' new' (t':acc) ts
+renameTs = renameThings renameT
 
 -- | Rename type variables in the Type according to the given association
 -- list. Normalise constructor names (remove qualification, etc.)
@@ -156,40 +158,24 @@ renameT env new (ForallT ns cxt t) =
         (t',env4,new4) = renameT env3 new3 t
     in (ForallT ns'' cxt' t', env4, new4)
   where
-    unVarT :: Type -> TyVarBndr
 #if MIN_VERSION_template_haskell(2,4,0)
     unVarT (VarT n) = PlainTV n
+    renamePreds = renameThings renamePred
+
+    renamePred env new (ClassP n ts) = let
+        (ts', env', new') = renameTs env new [] ts
+      in (ClassP (normaliseName n) ts', env', new')
+
+    renamePred env new (EqualP t1 t2) = let
+        (t1', env1, new1) = renameT env new t1
+        (t2', env2, new2) = renameT env1 new1 t2
+      in (EqualP t1' t2', env2, new2)
+
 #else /* !MIN_VERSION_template_haskell(2,4,0) */
     unVarT (VarT n) = n
+    renamePreds = renameTs
+
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */
-
-renamePred  ::  [(Name, Name)]
-            ->  [Name]
-            ->  Pred
-            ->  (Pred, [(Name,Name)], [Name])
-#if MIN_VERSION_template_haskell(2,4,0)
-renamePred env new (ClassP n ts) =
-    let (ts', env1, new1) = renameTs env new [] ts
-    in (ClassP (normaliseName n) ts', env1, new1)
-
-renamePred env new (EqualP t1 t2) =
-    let (t1', env1, new1) = renameT env new t1
-        (t2', env2, new2) = renameT env1 new1 t2
-    in (EqualP t1' t2', env2, new2)
-#else /* !MIN_VERSION_template_haskell(2,4,0) */
-renamePred env new pred =
-    renameT env new pred
-#endif /* !MIN_VERSION_template_haskell(2,4,0) */
-
-renamePreds  ::  [(Name, Name)]
-             ->  [Name]
-             ->  [Pred]
-             ->  [Pred]
-             ->  ([Pred], [(Name,Name)], [Name])
-renamePreds env new acc [] = (reverse acc, env, new)
-renamePreds env new acc (t:ts) =
-    let (t',env',new') = renamePred env new t
-    in renamePreds env' new' (t':acc) ts
 
 -- | Remove qualification, etc.
 normaliseName :: Name -> Name
@@ -258,7 +244,11 @@ decCons (NewtypeD _ _ _ con _) = [con]
 decCons _ = []
 
 
+#if MIN_VERSION_template_haskell(2,4,0)
 decTyVars :: Dec -> [TyVarBndr]
+#else /* !MIN_VERSION_template_haskell(2,4,0) */
+decTyVars :: Dec -> [Name]
+#endif /* !MIN_VERSION_template_haskell(2,4,0) */
 decTyVars (DataD _ _ ns _ _) = ns
 decTyVars (NewtypeD _ _ ns _ _) = ns
 decTyVars (TySynD _ ns _) = ns

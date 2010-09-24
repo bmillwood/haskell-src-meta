@@ -15,7 +15,6 @@ module Language.Haskell.Meta.Syntax.Translate (
 
 import Data.Typeable
 import Data.List (foldl', nub, (\\))
-import Language.Haskell.TH.Compat
 import Language.Haskell.TH.Syntax
 import Language.Haskell.TH.Lib
 import qualified Language.Haskell.Exts.Syntax as Hs
@@ -307,12 +306,13 @@ instance ToName Hs.TyVarBind where
   toName (Hs.KindedVar n _) = toName n
   toName (Hs.UnkindedVar n) = toName n
 
-instance ToName TyVarBndr where
+instance ToName Name where
+  toName = id
+
 #if MIN_VERSION_template_haskell(2,4,0)
+instance ToName TyVarBndr where
   toName (PlainTV n) = n
   toName (KindedTV n _) = n
-#else /* !MIN_VERSION_template_haskell(2,4,0) */
-  toName n = n
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 #if MIN_VERSION_template_haskell(2,4,0)
@@ -324,11 +324,12 @@ toKind Hs.KindBang = error "toKind: HsKindBang not supported"
 toKind (Hs.KindVar _) = error "toKind: HsKindVar not supported"
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
-toTyVar :: Hs.TyVarBind -> TyVarBndr
 #if MIN_VERSION_template_haskell(2,4,0)
+toTyVar :: Hs.TyVarBind -> TyVarBndr
 toTyVar (Hs.KindedVar n k) = KindedTV (toName n) (toKind k)
 toTyVar (Hs.UnkindedVar n) = PlainTV (toName n)
 #else /* !MIN_VERSION_template_haskell(2,4,0) */
+toTyVar :: Hs.TyVarBind -> Name
 toTyVar (Hs.KindedVar n _) = toName n
 toTyVar (Hs.UnkindedVar n) = toName n
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */

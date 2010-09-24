@@ -32,7 +32,6 @@ library
                       Language.Haskell.Meta.QQ.Idiom,
                       Language.Haskell.Meta.QQ.BF,
                       Language.Haskell.Meta.QQ.SKI
-  other-modules:      Language.Haskell.TH.Compat
 
 source-repository head
   type:     git
