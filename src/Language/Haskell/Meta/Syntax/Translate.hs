@@ -219,8 +219,7 @@ data HsExp
   toExp (Hs.Let bs e)              = LetE (hsBindsToDecs bs) (toExp e)
   -- toExp (HsWith e bs
   toExp (Hs.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
-  -- toExp (HsCase e xs)
-  -- toExp (HsDo ss)
+  toExp (Hs.Do ss)                 = DoE (map toStmt stmt)
   -- toExp (HsMDo ss)
   toExp (Hs.Tuple xs)              = TupE (fmap toExp xs)
   toExp (Hs.List xs)               = ListE (fmap toExp xs)
@@ -255,9 +254,19 @@ instance ToExp Hs.Splice where
   toExp (Hs.IdSplice s) = VarE (toName s)
   toExp (Hs.ParenSplice e) = toExp e
 
+toMatch :: Hs.Alt -> Match
 toMatch (Hs.Alt _ p galts ds) = Match (toPat p) (toBody galts) (toDecs ds)
+
+toBody :: Hs.GuardedAlts -> Body
 toBody (Hs.UnGuardedAlt  e) = NormalB $ toExp e
-toBody (Hs.GuardedAlts alts) = GuardedB $ map toGuard alts
+toBody (Hs.GuardedAlts alts) = GuardedB $ do
+  Hs.GuardedAlt _ stmts e <- alts
+  let
+    g = case map toStmt stmts of
+      [NoBindS x] -> NormalG x
+      xs -> PatG xs
+  return (g, toExp e)
+
 toGuard (Hs.GuardedAlt _ ([Hs.Qualifier e1]) e2) = (NormalG $ toExp e1,toExp e2)
 
 -----------------------------------------------------------------------------

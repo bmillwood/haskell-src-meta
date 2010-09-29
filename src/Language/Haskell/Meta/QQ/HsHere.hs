@@ -18,6 +18,14 @@ data Here
   | ManyH [Here]
   deriving (Eq,Show,Data,Typeable)
 
+-- | Example:
+--
+-- > a x = [$here| random "text" $(x + 1)
+-- >  something else|]
+--
+-- Is like:
+--
+-- > a x = " random \"text\" "++ show (x + 1) ++"\n  something else"
 here :: QuasiQuoter
 here = QuasiQuoter
         {quoteExp = hereExpQ

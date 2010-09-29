@@ -26,6 +26,7 @@ library
                       Language.Haskell.Meta.Syntax.Translate,
                       Language.Haskell.TH.Instances.Lift,
                       Language.Haskell.Meta.Utils,
+                      Language.Haskell.Meta.QQ.ADo,
                       Language.Haskell.Meta.QQ.Hs,
                       Language.Haskell.Meta.QQ.Here,
                       Language.Haskell.Meta.QQ.HsHere,
