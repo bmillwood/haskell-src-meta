@@ -214,7 +214,7 @@ data HsExp
   toExp (Hs.Let bs e)              = LetE (hsBindsToDecs bs) (toExp e)
   -- toExp (HsWith e bs
   toExp (Hs.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
-  toExp (Hs.Do ss)                 = DoE (map toStmt stmt)
+  toExp (Hs.Do ss)                 = DoE (map toStmt ss)
   -- toExp (HsMDo ss)
   toExp (Hs.Tuple xs)              = TupE (fmap toExp xs)
   toExp (Hs.List xs)               = ListE (fmap toExp xs)
