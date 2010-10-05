@@ -16,7 +16,6 @@ module Language.Haskell.Meta.Syntax.Translate (
 import Data.Typeable
 import Data.List (foldl', nub, (\\))
 import Language.Haskell.TH.Syntax
-import Language.Haskell.TH.Lib
 import qualified Language.Haskell.Exts.Syntax as Hs
 
 -----------------------------------------------------------------------------
@@ -497,8 +496,10 @@ instance ToDec Hs.Decl where
     -- XXXXXXXXXXXXXX: oh crap, we can't return a [Dec] from this class!
     = let xs = fmap (flip SigD (toType t) . toName) ns
       in case xs of x:_ -> x; [] -> error "toDec: malformed TypeSig!"
+#if MIN_VERSION_template_haskell(2,4,0)
   toDec (Hs.InlineSig _ b act id) = PragmaD $ 
     InlineP (toName id) (InlineSpec True False Nothing)
+#endif /* MIN_VERSION_template_haskell(2,4,0) */
 
 {- data HsDecl = ... | HsFunBind [HsMatch] | ...
 data HsMatch = HsMatch SrcLoc HsName [HsPat] HsRhs HsBinds
