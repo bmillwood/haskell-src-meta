@@ -497,8 +497,10 @@ instance ToDec Hs.Decl where
     = let xs = fmap (flip SigD (toType t) . toName) ns
       in case xs of x:_ -> x; [] -> error "toDec: malformed TypeSig!"
 #if MIN_VERSION_template_haskell(2,4,0)
-  toDec (Hs.InlineSig _ b act id) = PragmaD $ 
-    InlineP (toName id) (InlineSpec True False Nothing)
+  toDec (Hs.InlineConlikeSig _ act id)                 = PragmaD $ 
+    InlineP (toName id) (InlineSpec True True $ transAct act)
+  toDec (Hs.InlineSig _ b act id)                      = PragmaD $ 
+    InlineP (toName id) (InlineSpec b False $ transAct act)
 #endif /* MIN_VERSION_template_haskell(2,4,0) */
 
 {- data HsDecl = ... | HsFunBind [HsMatch] | ...
@@ -524,7 +526,10 @@ LetE [ValD (VarP x_0) (NormalB (LitE (IntegerL 2))) []] (VarE x_0) -}
 -- data Hs.Decl = ... | Hs.SpliceDecl Hs.SrcLoc Hs.Splice | ...
 -- data Hs.Splice = Hs.IdSplice String | Hs.ParenSplice Hs.Exp
 
-
+transAct act = case act of
+  Hs.AlwaysActive    -> Nothing
+  Hs.ActiveFrom n    -> Just (True,n)
+  Hs.ActiveUntil n   -> Just (False,n)
 
 
 
