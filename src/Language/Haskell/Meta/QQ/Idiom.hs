@@ -15,8 +15,10 @@ import Language.Haskell.TH.Syntax
 -- ghci> [$i| (,) "foo" "bar" |]
 -- [('f','b'),('f','a'),('f','r'),('o','b'),('o','a'),('o','r'),('o','b'),('o','a'),('o','r')]
 i :: QuasiQuoter
-i = QuasiQuoter ((cleanNames <$>) . applicateQ)
-        (either fail return . parsePat)
+i = QuasiQuoter
+    { quoteExp = (cleanNames <$>) . applicateQ
+    , quotePat = either fail return . parsePat
+    }
 
 applicateQ :: String -> ExpQ
 applicateQ s = case either fail unwindE (parseExp s) of

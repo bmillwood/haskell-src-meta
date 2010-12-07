@@ -88,8 +88,9 @@ ado' = ado'' True
 
 ado'' ::  Bool -> QuasiQuoter
 ado'' b = QuasiQuoter
-    (\str -> fmap cleanNames $ applicate b =<< parseDo str)
-    (either fail return . parsePat)
+    { quoteExp = (\str -> fmap cleanNames $ applicate b =<< parseDo str)
+    , quotePat = either fail return . parsePat
+    }
 
 parseDo ::  (Monad m) => String -> m [Stmt]
 parseDo str =

@@ -17,8 +17,9 @@ import Language.Haskell.TH.Syntax
 -- > ((42,88),42)
 hs :: QuasiQuoter
 hs = QuasiQuoter
-      (either fail transformE . parseExp)
-      (either fail transformP . parsePat)
+      { quoteExp = either fail transformE . parseExp
+      , quotePat = either fail transformP . parsePat
+      }
 
 transformE :: Exp -> ExpQ
 transformE = return
@@ -28,7 +29,8 @@ transformP = return
 
 pat :: QuasiQuoter
 pat = QuasiQuoter
-        (quoteExp hs)
-        (\s -> case parseExp s of
+        { quoteExp = quoteExp hs
+        , quotePat = \s -> case parseExp s of
                 Left err -> fail err
-                Right e -> either fail return (parsePat . pretty $ e))
+                Right e -> either fail return (parsePat . pretty $ e)
+        }

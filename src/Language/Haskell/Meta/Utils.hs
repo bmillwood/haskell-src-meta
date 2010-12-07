@@ -354,6 +354,7 @@ mkClauseQ ps e = clause ps (normalB e) []
 --  functions you wish to use for parsing in pattern and
 --  expression context respectively, put them inside
 --  a @Quoter@ datatype and pass this to quasify.
+{-
 data Quoter a = Quoter
   { expQ :: (Lift a) => String -> Q a
   , patQ :: (Show a) => String -> Q a }
@@ -362,6 +363,7 @@ quasify :: (Show a, Lift a) => Quoter a -> QuasiQuoter
 quasify q = QuasiQuoter
               (toExpQ (expQ q))
               (toPatQ (patQ q))
+              -}
 
 toExpQ :: (Lift a) => (String -> Q a) -> (String -> ExpQ)
 toExpQ parseQ = (lift =<<) . parseQ
