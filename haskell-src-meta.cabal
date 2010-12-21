@@ -14,6 +14,8 @@ synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
                     to template-haskell abstract syntax isn't 100% complete yet.
 
+extra-source-files: examples/*.hs
+
 library
   build-depends:   base >= 4.1 && < 4.4,
                    containers >= 0.2 && < 0.5,
@@ -30,11 +32,6 @@ library
                    Language.Haskell.Meta.Syntax.Translate
                    Language.Haskell.TH.Instances.Lift
                    Language.Haskell.Meta.Utils
-                   Language.Haskell.Meta.QQ.Hs
-                   Language.Haskell.Meta.QQ.Here
-                   Language.Haskell.Meta.QQ.HsHere
-                   Language.Haskell.Meta.QQ.BF
-                   Language.Haskell.Meta.QQ.SKI
 
 source-repository head
   type:     git
