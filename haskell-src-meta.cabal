@@ -8,6 +8,7 @@ category:           Language
 author:             Matt Morrow
 copyright:          (c) Matt Morrow
 maintainer:         Ben Millwood <haskell@benmachine.co.uk>
+bug-reports:        https://github.com/benmachine/haskell-src-meta/issues
 stability:          experimental
 synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
