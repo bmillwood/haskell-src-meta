@@ -4,7 +4,7 @@ module Language.Haskell.Meta.QQ.BF (
    bf,bf2,bfHelloWorld
 ) where
 
-import Language.Haskell.Meta
+import Language.Haskell.Meta (parsePat)
 import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax

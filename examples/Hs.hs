@@ -4,8 +4,8 @@
 
 module Language.Haskell.Meta.QQ.Hs (hs, pat) where
 
-import Language.Haskell.Meta
-import Language.Haskell.Meta.Utils
+import Language.Haskell.Meta (parseExp, parsePat)
+import Language.Haskell.Meta.Utils (pretty)
 import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax

@@ -2,12 +2,12 @@
 
 module Language.Haskell.Meta.QQ.HsHere (here) where
 
-import Language.Haskell.Meta
+import Language.Haskell.Meta (parseExp, parsePat)
 import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Ppr
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
-import Language.Haskell.Meta.Utils
+import Language.Haskell.Meta.Utils (cleanNames)
 import Text.ParserCombinators.ReadP
 import Data.Typeable(Typeable)
 import Data.Generics(Data)
