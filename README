@@ -1,0 +1,37 @@
+haskell-src-meta is a package originally by Matt Morrow for converting a
+parsed AST from haskell-src-exts to a TH AST for use in splices and
+quasiquoters. The last version Matt released before he disappeared from
+the Haskell community was 0.0.6, but by that time his library was
+already popular, so some community members eventually decided to take
+over maintenance of the package, keeping it up to date with the latest
+versions of TH etc.
+
+I don't really view this as "my" package so if you want write access to
+the github repository, or you think you could do a better job as
+maintainer, just ask.
+
+Major changes:
+
+0.2 -> 0.3:
+- Fixes/additions to inline pragma support (Jonas Duregard)
+- Compatibility with GHC 7 and TH 2.5 - totalling three major versions!
+- Move some of the quasiquoters to their own package, and stop exporting
+  the rest (they are kept as examples of usage)
+
+0.1.1 -> 0.2:
+- Compatibility with GHC 6.10 and TH 2.3 (Geoffrey Mainland)
+- Add support for do-blocks, pattern guards (Adam Vogt)
+- Add applicative-do quasiquoter (Adam Vogt)
+
+0.1.0 -> 0.1.1:
+- Add support for inline pragmas, and improve support for type
+  signatures (patch by Jonas Duregard)
+
+0.0.6 -> 0.1.0:
+- Used the th-lift library to autogenerate the instances of Lift in
+  Language.Haskell.TH.Instances.Lift
+- Added support for the new features of template-haskell-2.4.0.0:
+  contexts, kinds, bang patterns, unboxed word literals.
+- Updated use of haskell-src-exts in response to API changes.
+- Added ToDecs class because some HSE Decls don't map to a single Dec.
+  (patch by Jonas Duregard)
