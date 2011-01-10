@@ -604,7 +604,7 @@ hsGuardedRhsToBody (Hs.GuardedRhs _ ss e)  = let ss' = fmap hsStmtToGuard ss
 hsStmtToGuard :: Hs.Stmt -> Guard
 hsStmtToGuard (Hs.Generator _ p e) = PatG [BindS (toPat p) (toExp e)]
 hsStmtToGuard (Hs.Qualifier e)     = NormalG (toExp e)
-hsStmtToGuard a@(Hs.LetStmt _)     = error $ errorMsg "hsStmtToGuardExp" a
+hsStmtToGuard (Hs.LetStmt bs)      = PatG [LetS (hsBindsToDecs bs)]
 
 
 -----------------------------------------------------------------------------
