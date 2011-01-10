@@ -31,14 +31,21 @@ class ToDec  a where toDec  :: a -> Dec
 class ToStmt a where toStmt :: a -> Stmt
 class ToLoc  a where toLoc  :: a -> Loc
 
+-- for error messages
+moduleName = "Language.Haskell.Meta.Syntax.Translate"
 
-errorMsg :: (Typeable a) => String -> a -> String
-errorMsg fun a = concat
-  [ fun,": "
-  , show . typeRepTyCon . typeOf $ a
-  , " not (yet?) implemented"
-  ]
+-- When to use each of these isn't always clear: prefer 'todo' if unsure.
+noTH :: Show e => String -> e -> a
+noTH fun thing = error . concat $ [moduleName, ".", fun,
+  ": no TH representation for: ", show thing]
 
+todo :: Show e => String -> e -> a
+todo fun thing = error . concat $ [moduleName, ".", fun,
+  ": not implemented: ", show thing]
+
+nonsense :: Show e => String -> String -> e -> a
+nonsense fun inparticular thing = error . concat $ [moduleName, ".", fun,
+  ": nonsensical: ", inparticular, ": ", show thing]
 
 -----------------------------------------------------------------------------
 
@@ -156,7 +163,7 @@ instance ToPat Hs.Pat where
 ghci> parseHsPat "-2"
 Right (HsPParen (HsPNeg (HsPLit (HsInt 2))))
 -}
-  toPat (Hs.PNeg p) = error "toPat: HsPNeg not supported"
+  toPat p@Hs.PNeg{} = todo "toPat" p
   toPat (Hs.PInfixApp p n q)= InfixP (toPat p) (toName n) (toPat q)
   toPat (Hs.PApp n ps) = ConP (toName n) (fmap toPat ps)
   toPat (Hs.PTuple ps) = TupP (fmap toPat ps)
@@ -168,11 +175,13 @@ Right (HsPParen (HsPNeg (HsPLit (HsInt 2))))
   toPat (Hs.PWildCard) = WildP
   toPat (Hs.PIrrPat p) = TildeP (toPat p)
   toPat (Hs.PatTypeSig _ p t) = SigP (toPat p) (toType t)
-  toPat (Hs.PRPat rps) = error "toPat: HsRPat not supported"
-  toPat (Hs.PXTag _ _ _ pM p) = error "toPat: HsPXTag not supported"
-  toPat (Hs.PXETag _ _ _ pM) = error "toPat: HsPXETag not supported"
-  toPat (Hs.PXPcdata _) = error "toPat: HsPXPcdata not supported"
-  toPat (Hs.PXPatTag p) = error "toPat: HsPXPatTag not supported"
+  -- regular pattern
+  toPat p@Hs.PRPat{} = noTH "toPat" p
+  -- XML stuff
+  toPat p@Hs.PXTag{} = noTH "toPat" p
+  toPat p@Hs.PXETag{} = noTH "toPat" p
+  toPat p@Hs.PXPcdata{} = noTH "toPat" p
+  toPat p@Hs.PXPatTag{} = noTH "toPat" p
 #if MIN_VERSION_template_haskell(2,4,0)
   toPat (Hs.PBangPat p) = BangP (toPat p)
 #endif /* MIN_VERSION_template_haskell(2,4,0) */
@@ -233,7 +242,6 @@ data HsExp
   --  HsListComp HsExp [HsStmt]
   -- toExp (HsListComp e ss) = CompE
   -- NEED: a way to go e -> Stmt
-  toExp a@(Hs.ListComp e ss)       = error $ errorMsg "toExp" a
 {- HsVarQuote HsQName
   | HsTypQuote HsQName
   | HsBracketExp HsBracket
@@ -246,7 +254,7 @@ data HsBracket
 data HsSplice = HsIdSplice String | HsParenSplice HsExp -}
   toExp (Hs.SpliceExp spl) = toExp spl
   toExp (Hs.Case e alts) = CaseE (toExp e) (map toMatch alts)
-  toExp e = error $ errorMsg "toExp" e
+  toExp e = todo "toExp" e
 
 
 instance ToExp Hs.Splice where
@@ -328,8 +336,8 @@ toKind :: Hs.Kind -> Kind
 toKind Hs.KindStar = StarK
 toKind (Hs.KindFn k1 k2) = ArrowK (toKind k1) (toKind k2)
 toKind (Hs.KindParen kp) = toKind kp
-toKind Hs.KindBang = error "toKind: HsKindBang not supported"
-toKind (Hs.KindVar _) = error "toKind: HsKindVar not supported"
+toKind k@Hs.KindBang = noTH "toKind" k
+toKind k@Hs.KindVar{} = noTH "toKind" k
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 #if MIN_VERSION_template_haskell(2,4,0)
@@ -380,12 +388,12 @@ toCxt = fmap toPred
   toPred (Hs.ClassA n ts) = ClassP (toName n) (fmap toType ts)
   toPred (Hs.InfixA t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
   toPred (Hs.EqualP t1 t2) = EqualP (toType t1) (toType t2)
-  toPred a@(Hs.IParam _ _) = error $ errorMsg "toPred" a
+  toPred a@Hs.IParam{} = noTH "toCxt" a
 #else /* !MIN_VERSION_template_haskell(2,4,0) */
   toPred (Hs.ClassA n ts) = foldAppT (ConT (toName n)) (fmap toType ts)
   toPred (Hs.InfixA t1 n t2) = foldAppT (ConT (toName n)) (fmap toType [t1, t2])
-  toPred a@(Hs.EqualP _ _) = error $ errorMsg "toPred" a
-  toPred a@(Hs.IParam _ _) = error $ errorMsg "toPred" a
+  toPred a@Hs.EqualP{} = noTH "toCxt" a
+  toPred a@Hs.IParam{} = noTH "toCxt" a
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 foldAppT :: Type -> [Type] -> Type
@@ -408,7 +416,7 @@ instance ToStmt Hs.Stmt where
 -- data HsBinds = HsBDecls [HsDecl] | HsIPBinds [HsIPBind]
 hsBindsToDecs :: Hs.Binds -> [Dec]
 hsBindsToDecs (Hs.BDecls ds) = fmap toDec ds
-hsBindsToDecs a@(Hs.IPBinds ipbs) = error $ errorMsg "hsBindsToDecs" a
+hsBindsToDecs a@Hs.IPBinds{} = noTH "hsBindsToDecs" a
 -- data HsIPBind = HsIPBind SrcLoc HsIPName HsExp
 
 
@@ -447,8 +455,9 @@ instance ToDec Hs.Decl where
                               (fmap qualConDeclToCon qcds)
                               (fmap (toName . fst) qns)
         Hs.NewType  -> let qcd = case qcds of
-                                  x:_ -> x
-                                  _   -> error "toDec: Newtype has no constructors!"
+                                  [x] -> x
+                                  _   -> nonsense "toDec" ("newtype with " ++
+                                           "wrong number of constructors") dOrN
                         in NewtypeD (toCxt cxt)
                                     (toName n)
                                     (fmap toTyVar ns)
@@ -477,19 +486,6 @@ instance ToDec Hs.Decl where
 -- type VarStrictType = (Name, Strict, Type)
 
 
-  toDec a@(Hs.GDataDecl _ dOrN cxt n ns kM gadtDecs _) = error $ errorMsg "toDec" a
-  toDec a@(Hs.TypeFamDecl _ n ns kM)                   = error $ errorMsg "toDec" a
-  toDec a@(Hs.DataFamDecl _ cxt n ns kM)               = error $ errorMsg "toDec" a
-  toDec a@(Hs.TypeInsDecl _ ta tb)                     = error $ errorMsg "toDec" a
-  toDec a@(Hs.DataInsDecl _ dOrN t qcds qns)           = error $ errorMsg "toDec" a
-  toDec a@(Hs.GDataInsDecl _ dOrN t kM gadtDecs _)     = error $ errorMsg "toDec" a
--- data HsOp = HsVarOp HsName | HsConOp HsName
-  toDec a@(Hs.InfixDecl _ asst i ops)                  = error $ errorMsg "toDec" a
-  toDec a@(Hs.ClassDecl _ cxt n ns funDeps cDecs)      = error $ errorMsg "toDec" a
-  toDec a@(Hs.InstDecl _ cxt qn ts instDecs)           = error $ errorMsg "toDec" a
-  toDec a@(Hs.DerivDecl _ cxt qn ts)                   = error $ errorMsg "toDec" a
-  toDec a@(Hs.DefaultDecl _ ts)                        = error $ errorMsg "toDec" a
-  toDec a@(Hs.SpliceDecl _ s)                          = error $ errorMsg "toDec" a
   -- This type-signature conversion is just wrong. 
   -- Type variables need to be dealt with. /Jonas
   toDec a@(Hs.TypeSig _ ns t)
@@ -517,10 +513,8 @@ LetE [ValD (VarP x_0) (NormalB (LitE (IntegerL 2))) []] (VarE x_0) -}
                                                                       tM) (toPat p))
                                                               (hsRhsToBody rhs)
                                                               (hsBindsToDecs bnds)
-  toDec a@(Hs.ForImp _ cconv safe str n t)             = error $ errorMsg "toDec" a
-  toDec a@(Hs.ForExp _ cconv      str n t)             = error $ errorMsg "toDec" a
 
-  toDec x = error $ "toDec: Untranslatable declaration:" ++ (show x)
+  toDec x = todo "toDec" x
 
 
 -- data Hs.Decl = ... | Hs.SpliceDecl Hs.SrcLoc Hs.Splice | ...
