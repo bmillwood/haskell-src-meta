@@ -163,7 +163,14 @@ instance ToPat Hs.Pat where
 ghci> parseHsPat "-2"
 Right (HsPParen (HsPNeg (HsPLit (HsInt 2))))
 -}
-  toPat p@Hs.PNeg{} = todo "toPat" p
+  toPat (Hs.PNeg (Hs.PLit l)) = LitP $ case toLit l of
+    IntegerL z -> IntegerL (negate z)
+    RationalL q -> RationalL (negate q)
+    IntPrimL z' -> IntPrimL (negate z')
+    FloatPrimL r' -> FloatPrimL (negate r')
+    DoublePrimL r'' -> DoublePrimL (negate r'')
+    _ -> nonsense "toPat" "negating wrong kind of literal" l
+  toPat (Hs.PNeg p) = nonsense "toPat" "negating non-literal" p
   toPat (Hs.PInfixApp p n q)= InfixP (toPat p) (toName n) (toPat q)
   toPat (Hs.PApp n ps) = ConP (toName n) (fmap toPat ps)
   toPat (Hs.PTuple ps) = TupP (fmap toPat ps)
