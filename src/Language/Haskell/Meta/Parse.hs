@@ -11,7 +11,7 @@
 module Language.Haskell.Meta.Parse where
 
 import Language.Haskell.TH.Syntax
-import Language.Haskell.Meta.Syntax
+import Language.Haskell.Meta.Syntax.Translate
 import qualified Language.Haskell.Exts.Syntax as Hs
 import Language.Haskell.Exts.Annotated.Fixity
 import Language.Haskell.Exts.Extension

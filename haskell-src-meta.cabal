@@ -18,7 +18,6 @@ extra-source-files: examples/*.hs
 
 library
   build-depends:   base >= 4.1 && < 4.4,
-                   containers >= 0.2 && < 0.5,
                    haskell-src-exts >= 1.6 && < 1.10,
                    template-haskell >= 2.3 && < 2.6,
                    pretty == 1.0.*,
@@ -27,8 +26,6 @@ library
   hs-source-dirs:  src
   exposed-modules: Language.Haskell.Meta
                    Language.Haskell.Meta.Parse
-                   Language.Haskell.Meta.Syntax
-                   Language.Haskell.Meta.Syntax.Vars
                    Language.Haskell.Meta.Syntax.Translate
                    Language.Haskell.TH.Instances.Lift
                    Language.Haskell.Meta.Utils
