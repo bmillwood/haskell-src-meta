@@ -18,7 +18,7 @@ extra-source-files: examples/*.hs
 
 library
   build-depends:   base >= 4.1 && < 4.4,
-                   haskell-src-exts >= 1.6 && < 1.10,
+                   haskell-src-exts >= 1.6 && < 1.11,
                    template-haskell >= 2.3 && < 2.6,
                    pretty == 1.0.*,
                    syb >= 0.1 && < 0.3,
