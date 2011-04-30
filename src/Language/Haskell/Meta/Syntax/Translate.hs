@@ -259,14 +259,9 @@ data HsBracket
   | HsTypeBracket HsType
   | HsDeclBracket [HsDecl]
 data HsSplice = HsIdSplice String | HsParenSplice HsExp -}
-  toExp (Hs.SpliceExp spl) = toExp spl
   toExp (Hs.Case e alts) = CaseE (toExp e) (map toMatch alts)
   toExp e = todo "toExp" e
 
-
-instance ToExp Hs.Splice where
-  toExp (Hs.IdSplice s) = VarE (toName s)
-  toExp (Hs.ParenSplice e) = toExp e
 
 toMatch :: Hs.Alt -> Match
 toMatch (Hs.Alt _ p galts ds) = Match (toPat p) (toBody galts) (toDecs ds)
