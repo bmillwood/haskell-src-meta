@@ -21,7 +21,7 @@ library
                    haskell-src-exts >= 1.6 && < 1.11,
                    template-haskell >= 2.3 && < 2.6,
                    pretty == 1.0.*,
-                   syb >= 0.1 && < 0.3,
+                   syb >= 0.1 && < 0.4,
                    th-lift == 0.5.*
   hs-source-dirs:  src
   exposed-modules: Language.Haskell.Meta
