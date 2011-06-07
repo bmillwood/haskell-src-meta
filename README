@@ -12,6 +12,14 @@ maintainer, just ask.
 
 Major changes:
 
+0.3 -> 0.4:
+- Remove Language.Haskell.Meta.Syntax.Vars and the L.H.M.Syntax re-export module
+- Remove dependency on containers
+- Add support for let statements in (pattern) guards
+- Add support for negative patterns
+- Remove "support" for SpliceExps that didn't really make sense
+- Improve many error messages where things are unimplemented or impossible
+
 0.2 -> 0.3:
 - Fixes/additions to inline pragma support (Jonas Duregard)
 - Compatibility with GHC 7 and TH 2.5 - totalling three major versions!
