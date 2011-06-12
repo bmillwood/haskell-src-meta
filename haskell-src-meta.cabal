@@ -23,6 +23,11 @@ library
                    pretty == 1.0.*,
                    syb >= 0.1 && < 0.4,
                    th-lift == 0.5.*
+  extensions:      CPP,
+                   RankNTypes,
+                   StandaloneDeriving,
+                   TemplateHaskell,
+                   TypeSynonymInstances
   hs-source-dirs:  src
   exposed-modules: Language.Haskell.Meta
                    Language.Haskell.Meta.Parse
