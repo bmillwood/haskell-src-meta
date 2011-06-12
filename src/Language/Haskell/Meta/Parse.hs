@@ -8,14 +8,31 @@
   Portability :  portable (template-haskell)
 -}
 
-module Language.Haskell.Meta.Parse where
+module Language.Haskell.Meta.Parse (
+  parsePat,
+  parseExp,
+  parseType,
+  parseDecs,
+  myDefaultParseMode,
+  myDefaultExtensions,
+  parseResultToEither,
+  parseHsModule,
+  parseHsDecls,
+  parseHsType,
+  parseHsExp,
+  parseHsPat,
+  pprHsModule,
+  moduleDecls,
+  emptySrcLoc,
+  emptyHsModule
+ ) where
 
 import Language.Haskell.TH.Syntax
 import Language.Haskell.Meta.Syntax.Translate
 import qualified Language.Haskell.Exts.Syntax as Hs
 import Language.Haskell.Exts.Annotated.Fixity
 import Language.Haskell.Exts.Extension
-import Language.Haskell.Exts.Parser
+import Language.Haskell.Exts.Parser hiding (parseExp, parseType, parsePat)
 import Language.Haskell.Exts.Pretty
 
 -----------------------------------------------------------------------------
