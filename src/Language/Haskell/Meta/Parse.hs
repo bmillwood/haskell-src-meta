@@ -1,4 +1,3 @@
-
 {- |
   Module      :  Language.Haskell.Meta.Parse
   Copyright   :  (c) Matt Morrow 2008
@@ -30,7 +29,7 @@ module Language.Haskell.Meta.Parse (
 import Language.Haskell.TH.Syntax
 import Language.Haskell.Meta.Syntax.Translate
 import qualified Language.Haskell.Exts.Syntax as Hs
-import Language.Haskell.Exts.Annotated.Fixity
+import Language.Haskell.Exts.Annotated.Fixity as Fix
 import Language.Haskell.Exts.Extension
 import Language.Haskell.Exts.Parser hiding (parseExp, parseType, parsePat)
 import Language.Haskell.Exts.Pretty
@@ -61,7 +60,31 @@ myDefaultParseMode = ParseMode
   ,extensions = myDefaultExtensions
   ,ignoreLinePragmas = False
   ,ignoreLanguagePragmas = False
-  ,fixities = baseFixities}
+  ,fixities = defaultFixities}
+
+-- This is a silly hack to make things work on haskell-src-exts versions
+-- 1.10 and 1.11 simultaneously. I justify it because myDefaultParseMode is
+-- deprecated anyway.
+--
+-- Essentially we want defaultFixities to be baseFixities or Just baseFixities
+-- as appropriate. We do this without requiring FlexibleInstances using the
+-- same trick as Show on lists does.
+class DefaultFixities a where
+  defaultFixities :: a
+  defaultFixities =
+    error "Language.Haskell.Meta.Parse.defaultFixities undefined"
+  defaultFixityList :: [a]
+  defaultFixityList =
+    error "Language.Haskell.Meta.Parse.defaultFixityList undefined"
+
+instance DefaultFixities Fix.Fixity where
+  defaultFixityList = baseFixities
+
+instance DefaultFixities a => DefaultFixities [a] where
+  defaultFixities = defaultFixityList
+
+instance DefaultFixities a => DefaultFixities (Maybe a) where
+  defaultFixities = Just defaultFixities
 
 myDefaultExtensions :: [Extension]
 myDefaultExtensions = [PostfixOperators
