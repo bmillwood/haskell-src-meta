@@ -53,6 +53,8 @@ parseDecs  = either Left (Right . toDecs) . parseHsDecls
 
 -----------------------------------------------------------------------------
 
+{-# DEPRECATED myDefaultParseMode, myDefaultExtensions
+  "The provided ParseModes aren't very meaningful, use your own instead" #-}
 myDefaultParseMode :: ParseMode
 myDefaultParseMode = ParseMode
   {parseFilename = []
