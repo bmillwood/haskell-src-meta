@@ -12,6 +12,9 @@ maintainer, just ask.
 
 Major changes:
 
+0.4 -> 0.4.0.1:
+- Deprecate myDefaultParseMode and myDefaultExtensions in L.H.M.Parse
+
 0.3 -> 0.4:
 - Remove Language.Haskell.Meta.Syntax.Vars and the L.H.M.Syntax re-export module
 - Remove dependency on containers
