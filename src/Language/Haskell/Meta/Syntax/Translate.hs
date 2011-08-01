@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, TemplateHaskell, TypeSynonymInstances #-}
+{-# LANGUAGE CPP, TemplateHaskell, TypeSynonymInstances, FlexibleInstances #-}
 
 {- |
   Module      :  Language.Haskell.Meta.Syntax.Translate
