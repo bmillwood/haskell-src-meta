@@ -27,7 +27,11 @@ library
                    RankNTypes,
                    StandaloneDeriving,
                    TemplateHaskell,
-                   TypeSynonymInstances
+                   TypeSynonymInstances,
+                   FlexibleContexts,
+                   FlexibleInstances,
+                   DeriveDataTypeable,
+                   PatternGuards
   hs-source-dirs:  src
   exposed-modules: Language.Haskell.Meta
                    Language.Haskell.Meta.Parse
