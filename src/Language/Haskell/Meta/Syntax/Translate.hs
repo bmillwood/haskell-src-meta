@@ -516,6 +516,11 @@ LetE [ValD (VarP x_0) (NormalB (LitE (IntegerL 2))) []] (VarE x_0) -}
                                                               (hsRhsToBody rhs)
                                                               (hsBindsToDecs bnds)
 
+  toDec (Hs.InstDecl _ cxt qname ts ids) = InstanceD 
+    (toCxt cxt) 
+    (foldl AppT (ConT (toName qname)) (map toType ts))
+    (toDecs ids)
+                                                              
   toDec x = todo "toDec" x
 
 
@@ -604,6 +609,11 @@ hsStmtToGuard (Hs.LetStmt bs)      = PatG [LetS (hsBindsToDecs bs)]
 
 
 -----------------------------------------------------------------------------
+
+-- * ToDecs InstDecl
+instance ToDecs Hs.InstDecl where
+  toDecs (Hs.InsDecl decl) = toDecs decl
+  toDecs d              = todo "toDec" d
 
 -- * ToDecs HsDecl HsBinds
 
