@@ -140,7 +140,11 @@ instance ToLit Hs.Literal where
   toLit (Hs.Int a) = IntegerL a
   toLit (Hs.Frac a) = RationalL a
   toLit (Hs.PrimChar a) = CharL a      -- XXX
+#if MIN_VERSION_template_haskell(2,5,0)
+  toLit (Hs.PrimString a) = StringPrimL a
+#else /* MIN_VERSION_template_haskell(2,5,0) */
   toLit (Hs.PrimString a) = StringL a  -- XXX
+#endif /* MIN_VERSION_template_haskell(2,5,0) */
   toLit (Hs.PrimInt a) = IntPrimL a
   toLit (Hs.PrimFloat a) = FloatPrimL a
   toLit (Hs.PrimDouble a) = DoublePrimL a
