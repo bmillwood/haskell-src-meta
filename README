@@ -12,7 +12,7 @@ maintainer, just ask.
 
 Major changes:
 
-0.4.0.2 -> 0.5.0.1:
+0.5 -> 0.5.0.1:
 - Added support for primitive string literals (Only in TH >= 2.5)
 
 0.4.0.2 -> 0.5:
