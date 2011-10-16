@@ -12,6 +12,9 @@ maintainer, just ask.
 
 Major changes:
 
+0.5.0.1 -> 0.5.0.2:
+- Fixed bug in translation of tuple constructors
+
 0.5 -> 0.5.0.1:
 - Added support for primitive string literals (Only in TH >= 2.5)
 
