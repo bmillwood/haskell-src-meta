@@ -112,8 +112,8 @@ instance ToName Hs.SpecialCon where
   toName (Hs.TupleCon _ n)
     | n<2 = '()
     | otherwise =
-      let x = maybe [] (++".") (nameModule '())
-      in toName . concat $ x : ["(",replicate (n-1) ',',")"]
+      let x = maybe [] (++".") (nameModule '(,))
+      in mkName . concat $ x : ["(",replicate (n-1) ',',")"]
   toName Hs.Cons    = '(:)
 
 
