@@ -81,9 +81,9 @@ $(deriveLiftMany [ ''Body
                  , ''Pragma
                  , ''Pred
                  , ''TyVarBndr
-#if MIN_VERSION_template_haskell(2,5,0)
+#if MIN_VERSION_template_haskell(2,5,0) && !(MIN_VERSION_template_haskell(2,7,0))
                  , ''ClassInstance
-#endif /* MIN_VERSION_template_haskell(2,5,0) */
+#endif /* MIN_VERSION_template_haskell(2,5,0) && !(MIN_VERSION_template_haskell(2,7,0)) */
 #endif /* MIN_VERSION_template_haskell(2,4,0) */
                  ])
 

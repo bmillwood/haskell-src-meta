@@ -20,7 +20,7 @@ extra-source-files: examples/*.hs README
 library
   build-depends:   base >= 4.2 && < 4.6,
                    haskell-src-exts >= 1.6 && < 1.12,
-                   template-haskell >= 2.4 && < 2.7,
+                   template-haskell >= 2.4 && < 2.8,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.4,
                    th-lift == 0.5.*
