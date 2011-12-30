@@ -18,7 +18,7 @@ description:        The translation from haskell-src-exts abstract syntax
 extra-source-files: examples/*.hs README
 
 library
-  build-depends:   base >= 4.2 && < 4.5,
+  build-depends:   base >= 4.2 && < 4.6,
                    haskell-src-exts >= 1.6 && < 1.12,
                    template-haskell >= 2.4 && < 2.7,
                    pretty >= 1.0 && < 1.2,
