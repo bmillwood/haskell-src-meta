@@ -175,11 +175,19 @@ Right (HsPParen (HsPNeg (HsPLit (HsInt 2))))
     DoublePrimL r'' -> DoublePrimL (negate r'')
     _ -> nonsense "toPat" "negating wrong kind of literal" l
   toPat (Hs.PNeg p) = nonsense "toPat" "negating non-literal" p
+#if MIN_VERSION_template_haskell(2,7,0)
+  toPat (Hs.PInfixApp p n q) = UInfixP (toPat p) (toName n) (toPat q)    
+#else
   toPat (Hs.PInfixApp p n q)= InfixP (toPat p) (toName n) (toPat q)
+#endif
   toPat (Hs.PApp n ps) = ConP (toName n) (fmap toPat ps)
   toPat (Hs.PTuple ps) = TupP (fmap toPat ps)
   toPat (Hs.PList ps) = ListP (fmap toPat ps)
+#if MIN_VERSION_template_haskell(2,7,0)  
+  toPat (Hs.PParen p) = ParensP (toPat p)  
+#else
   toPat (Hs.PParen p) = toPat p
+#endif
   toPat (Hs.PRec n pfs) = let toFieldPat (Hs.PFieldPat n p) = (toName n, toPat p)
                           in RecP (toName n) (fmap toFieldPat pfs)
   toPat (Hs.PAsPat n p) = AsP (toName n) (toPat p)
@@ -229,7 +237,11 @@ data HsExp
   toExp (Hs.Var n)                 = VarE (toName n)
   toExp (Hs.Con n)                 = ConE (toName n)
   toExp (Hs.Lit l)                 = LitE (toLit l)
+#if MIN_VERSION_template_haskell(2,7,0)
+  toExp (Hs.InfixApp e o f)        = UInfixE (toExp e) (toExp o) (toExp f)
+#else
   toExp (Hs.InfixApp e o f)        = InfixE (Just . toExp $ e) (toExp o) (Just . toExp $ f)
+#endif
   toExp (Hs.LeftSection e o)       = InfixE (Just . toExp $ e) (toExp o) Nothing
   toExp (Hs.RightSection o f)      = InfixE Nothing (toExp o) (Just . toExp $ f)
   toExp (Hs.App e f)               = AppE (toExp e) (toExp f)
@@ -242,7 +254,11 @@ data HsExp
   -- toExp (HsMDo ss)
   toExp (Hs.Tuple xs)              = TupE (fmap toExp xs)
   toExp (Hs.List xs)               = ListE (fmap toExp xs)
+#if MIN_VERSION_template_haskell(2,7,0)
+  toExp (Hs.Paren e)               = ParensE (toExp e)
+#else
   toExp (Hs.Paren e)               = toExp e
+#endif
   toExp (Hs.RecConstr n xs)        = RecConE (toName n) (fmap toFieldExp xs)
   toExp (Hs.RecUpdate e xs)        = RecUpdE (toExp e) (fmap toFieldExp xs)
   toExp (Hs.EnumFrom e)            = ArithSeqE $ FromR (toExp e)
