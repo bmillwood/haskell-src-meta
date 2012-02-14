@@ -34,8 +34,7 @@ import qualified Language.Haskell.Meta.Parse as Sloppy
 import qualified Language.Haskell.Meta.Syntax.Translate as Translate
 import qualified Language.Haskell.TH as TH
 import qualified Language.Haskell.Exts.Syntax as Hs
-#ifdef NEW_TH
-#else
+#if !(MIN_VERSION_template_haskell(2,7,0))
 import Data.Generics.Uniplate.Data
 #endif
 
@@ -57,7 +56,7 @@ parseType = doChecked Sloppy.parseHsType Translate.toType
 parseDecs :: String -> Either String [TH.Dec]
 parseDecs = doChecked Sloppy.parseHsDecls Translate.toDecs
 
-#ifdef NEW_TH
+#if MIN_VERSION_template_haskell(2,7,0)
 amb = const False
 #else
 amb syn = any isAmbExp (universeBi syn) || any isAmbPat (universeBi syn)
