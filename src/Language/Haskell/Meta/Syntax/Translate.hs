@@ -194,6 +194,9 @@ Right (HsPParen (HsPNeg (HsPLit (HsInt 2))))
   toPat (Hs.PWildCard) = WildP
   toPat (Hs.PIrrPat p) = TildeP (toPat p)
   toPat (Hs.PatTypeSig _ p t) = SigP (toPat p) (toType t)
+#if MIN_VERSION_template_haskell(2,5,0)
+  toPat (Hs.PViewPat e p) = ViewP (toExp e) (toPat p)
+#endif
   -- regular pattern
   toPat p@Hs.PRPat{} = noTH "toPat" p
   -- XML stuff
@@ -204,6 +207,7 @@ Right (HsPParen (HsPNeg (HsPLit (HsInt 2))))
 #if MIN_VERSION_template_haskell(2,4,0)
   toPat (Hs.PBangPat p) = BangP (toPat p)
 #endif /* MIN_VERSION_template_haskell(2,4,0) */
+  toPat p = todo "toPat" p
 
 -----------------------------------------------------------------------------
 
