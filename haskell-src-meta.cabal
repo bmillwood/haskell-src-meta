@@ -19,7 +19,7 @@ extra-source-files: examples/*.hs README
 
 flag new-th
   Description: Build with template-haskell >= 2.7.0
-  Default: True
+  Default: False
 
 library
   build-depends:   base >= 4.2 && < 4.6,
