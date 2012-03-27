@@ -17,10 +17,6 @@ description:        The translation from haskell-src-exts abstract syntax
 
 extra-source-files: examples/*.hs README
 
-flag new-th
-  Description: Build with template-haskell >= 2.7.0
-  Default: False
-
 library
   build-depends:   base >= 4.2 && < 4.6,
                    haskell-src-exts >= 1.8 && < 1.13,
@@ -28,7 +24,7 @@ library
                    syb >= 0.1 && < 0.4,
                    th-lift == 0.5.*
 
-  if flag(new-th)
+  if impl(ghc >= 7.4)
     Build-depends: template-haskell >= 2.7 && < 2.9
   else
     Build-depends: template-haskell >= 2.4 && < 2.7,
