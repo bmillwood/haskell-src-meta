@@ -23,7 +23,7 @@ flag new-th
 
 library
   build-depends:   base >= 4.2 && < 4.6,
-                   haskell-src-exts >= 1.8 && < 1.12,
+                   haskell-src-exts >= 1.8 && < 1.13,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.4,
                    th-lift == 0.5.*
