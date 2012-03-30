@@ -12,6 +12,9 @@ maintainer, just ask.
 
 Major changes:
 
+0.5.1.1 -> 0.5.1.2:
+- More sensible determination of TH version available
+
 0.5.1 -> 0.5.1.1:
 - View pattern support, thanks to Nicolas Frisby.
 
