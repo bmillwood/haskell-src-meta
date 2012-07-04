@@ -473,6 +473,12 @@ instance ToDec Hs.Decl where
   toDec (Hs.TypeDecl _ n ns t)
     = TySynD (toName n) (fmap toTyVar ns) (toType t)
 
+  toDec (Hs.TypeFamDecl _ n ns k)
+    = FamilyD TypeFam (toName n) (fmap toTyVar ns) (fmap toKind k)
+
+  -- TODO: wtf context?
+  toDec (Hs.DataFamDecl _ _ n ns k)
+    = FamilyD DataFam (toName n) (fmap toTyVar ns) (fmap toKind k)
 
   toDec a@(Hs.DataDecl  _ dOrN cxt n ns qcds qns)
     = case dOrN of
@@ -545,9 +551,54 @@ LetE [ValD (VarP x_0) (NormalB (LitE (IntegerL 2))) []] (VarE x_0) -}
     (toCxt cxt) 
     (foldl AppT (ConT (toName qname)) (map toType ts))
     (toDecs ids)
-                                                              
+
+  toDec (Hs.ClassDecl _ cxt name ts fds decls) = ClassD
+    (toCxt cxt)
+    (toName name )
+    (fmap toTyVar ts)
+    (fmap toFunDep fds)
+    (fmap classDeclToDec decls)
+
+{- TODO
+GDataDecl SrcLoc
+              DataOrNew
+              Context
+              Name
+              [TyVarBind]
+              (Maybe Kind)
+              [GadtDecl]
+              [Deriving]
+  | TypeInsDecl SrcLoc Type Type
+  | DataInsDecl SrcLoc DataOrNew Type [QualConDecl] [Deriving]
+  | GDataInsDecl SrcLoc
+                 DataOrNew
+                 Type
+                 (Maybe Kind)
+                 [GadtDecl]
+                 [Deriving]
+ DerivDecl SrcLoc Context QName [Type]
+ InfixDecl SrcLoc Assoc Int [Op]
+ DefaultDecl SrcLoc [Type]
+ SpliceDecl SrcLoc Exp
+ ForImp SrcLoc CallConv Safety String Name Type
+ ForExp SrcLoc CallConv String Name Type
+ RulePragmaDecl SrcLoc [Rule]
+ DeprPragmaDecl SrcLoc [([Name], String)]
+ WarnPragmaDecl SrcLoc [([Name], String)]
+ SpecSig SrcLoc QName [Type]
+ SpecInlineSig SrcLoc Bool Activation QName [Type]
+ InstSig SrcLoc Context QName [Type]
+ AnnPragma SrcLoc Annotation
+-}
+
+
   toDec x = todo "toDec" x
 
+classDeclToDec cd = case cd of
+  (Hs.ClsDecl d) -> toDec d
+  x -> todo "classDecl" x
+
+toFunDep (Hs.FunDep ls rs) = FunDep (fmap toName ls) (fmap toName rs)
 
 -- data Hs.Decl = ... | Hs.SpliceDecl Hs.SrcLoc Hs.Splice | ...
 -- data Hs.Splice = Hs.IdSplice String | Hs.ParenSplice Hs.Exp
