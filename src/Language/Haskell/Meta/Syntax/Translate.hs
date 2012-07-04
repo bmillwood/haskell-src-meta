@@ -271,7 +271,8 @@ data HsExp
   toExp (Hs.EnumFromThenTo e f g)  = ArithSeqE $ FromThenToR (toExp e) (toExp f) (toExp g)
   toExp (Hs.ExpTypeSig _ e t)      = SigE (toExp e) (toType t)
   --  HsListComp HsExp [HsStmt]
-  -- toExp (HsListComp e ss) = CompE
+  toExp (Hs.ListComp e ss)         = CompE $ map convert ss ++ [NoBindS (toExp e)]
+   where convert (Hs.QualStmt st) = toStmt st
   -- NEED: a way to go e -> Stmt
 {- HsVarQuote HsQName
   | HsTypQuote HsQName
