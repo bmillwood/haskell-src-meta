@@ -473,20 +473,13 @@ instance ToDec Hs.Decl where
   toDec (Hs.TypeDecl _ n ns t)
     = TySynD (toName n) (fmap toTyVar ns) (toType t)
 
-  toDec (Hs.TypeFamDecl _ n ns k)
-    = FamilyD TypeFam (toName n) (fmap toTyVar ns) (fmap toKind k)
-
-  -- TODO: wtf context?
-  toDec (Hs.DataFamDecl _ _ n ns k)
-    = FamilyD DataFam (toName n) (fmap toTyVar ns) (fmap toKind k)
-
   toDec a@(Hs.DataDecl  _ dOrN cxt n ns qcds qns)
     = case dOrN of
         Hs.DataType -> DataD (toCxt cxt)
-                              (toName n)
-                              (fmap toTyVar ns)
-                              (fmap qualConDeclToCon qcds)
-                              (fmap (toName . fst) qns)
+                             (toName n)
+                             (fmap toTyVar ns)
+                             (fmap qualConDeclToCon qcds)
+                             (fmap (toName . fst) qns)
         Hs.NewType  -> let qcd = case qcds of
                                   [x] -> x
                                   _   -> nonsense "toDec" ("newtype with " ++
@@ -525,11 +518,21 @@ instance ToDec Hs.Decl where
     -- XXXXXXXXXXXXXX: oh crap, we can't return a [Dec] from this class!
     = let xs = fmap (flip SigD (toType t) . toName) ns
       in case xs of x:_ -> x; [] -> error "toDec: malformed TypeSig!"
+
 #if MIN_VERSION_template_haskell(2,4,0)
+
   toDec (Hs.InlineConlikeSig _ act id)                 = PragmaD $ 
     InlineP (toName id) (InlineSpec True True $ transAct act)
   toDec (Hs.InlineSig _ b act id)                      = PragmaD $ 
     InlineP (toName id) (InlineSpec b False $ transAct act)
+
+  toDec (Hs.TypeFamDecl _ n ns k)
+    = FamilyD TypeFam (toName n) (fmap toTyVar ns) (fmap toKind k)
+
+  -- TODO: do something with context?
+  toDec (Hs.DataFamDecl _ _ n ns k)
+    = FamilyD DataFam (toName n) (fmap toTyVar ns) (fmap toKind k)
+
 #endif /* MIN_VERSION_template_haskell(2,4,0) */
 
 {- data HsDecl = ... | HsFunBind [HsMatch] | ...
@@ -590,7 +593,6 @@ GDataDecl SrcLoc
  InstSig SrcLoc Context QName [Type]
  AnnPragma SrcLoc Annotation
 -}
-
 
   toDec x = todo "toDec" x
 
