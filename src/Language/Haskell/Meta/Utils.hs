@@ -16,7 +16,6 @@ import Language.Haskell.Exts.Pretty(prettyPrint)
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 import Language.Haskell.TH.Lib
-import Language.Haskell.TH.Lift (deriveLift)
 import Language.Haskell.TH.Ppr
 import Text.PrettyPrint
 import Control.Monad
@@ -200,17 +199,6 @@ substT env bnd (AppT t t') = AppT (substT env bnd t)
 substT _ _ t = t
 
 
-
-
-
--- | Produces pretty code suitable
---  for human consumption.
-deriveLiftPretty :: Name -> Q String
-deriveLiftPretty n = do
-  decs <- deriveLift n
-  case (parseHsDecls . pprint . cleanNames) decs of
-    Left e -> fail ("deriveLiftPretty: error while prettifying code: "++e)
-    Right hsdecs -> return (unlines . fmap prettyPrint $ hsdecs)
 
 
 

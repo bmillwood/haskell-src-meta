@@ -22,7 +22,6 @@ library
                    haskell-src-exts >= 1.8 && < 1.14,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.4,
-                   th-lift == 0.5.*,
                    th-orphans == 0.5.*
 
   if impl(ghc >= 7.4)
