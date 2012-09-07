@@ -558,10 +558,15 @@ LetE [ValD (VarP x_0) (NormalB (LitE (IntegerL 2))) []] (VarE x_0) -}
 
   toDec (Hs.ClassDecl _ cxt name ts fds decls) = ClassD
     (toCxt cxt)
-    (toName name )
+    (toName name)
     (fmap toTyVar ts)
     (fmap toFunDep fds)
     (fmap classDeclToDec decls)
+   where
+    classDeclToDec cd = case cd of
+      (Hs.ClsDecl d) -> toDec d
+      x -> todo "classDecl" x
+    toFunDep (Hs.FunDep ls rs) = FunDep (fmap toName ls) (fmap toName rs)
 
 {- TODO
 GDataDecl SrcLoc
@@ -596,12 +601,6 @@ GDataDecl SrcLoc
 -}
 
   toDec x = todo "toDec" x
-
-classDeclToDec cd = case cd of
-  (Hs.ClsDecl d) -> toDec d
-  x -> todo "classDecl" x
-
-toFunDep (Hs.FunDep ls rs) = FunDep (fmap toName ls) (fmap toName rs)
 
 -- data Hs.Decl = ... | Hs.SpliceDecl Hs.SrcLoc Hs.Splice | ...
 -- data Hs.Splice = Hs.IdSplice String | Hs.ParenSplice Hs.Exp
