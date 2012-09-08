@@ -1,3 +1,17 @@
+0.5.1.2 -> 0.6:
+- Cabal category Template Haskell
+- Partial support for list comprehensions
+- Support for type and data families and class decs
+- Split orphan instances into new package th-orphans
+  - above changes courtesy of mgsloan
+  - L.H.TH.Instances.Lift now deprecated
+- Removed L.H.M.Utils.deriveLiftPretty, dropped th-lift dependency
+- Rename L.H.M.Utils.unQ to unsafeRunQ
+- instance ToName Op
+- Support for unboxed tuple types and kind signatures
+- Compatibility with GHC 7.6.1, bringing support for kind variables
+  and infix declarations
+
 0.5.1.1 -> 0.5.1.2:
 - More sensible determination of TH version available
 
