@@ -484,7 +484,7 @@ instance ToDec Hs.Decl where
         Hs.NewType  -> let qcd = case qcds of
                                   [x] -> x
                                   _   -> nonsense "toDec" ("newtype with " ++
-                                           "wrong number of constructors") dOrN
+                                           "wrong number of constructors") a
                         in NewtypeD (toCxt cxt)
                                     (toName n)
                                     (fmap toTyVar ns)
