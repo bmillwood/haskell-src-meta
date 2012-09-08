@@ -13,6 +13,7 @@ module Language.Haskell.Meta.Syntax.Translate (
     module Language.Haskell.Meta.Syntax.Translate
 ) where
 
+import Data.Char (ord)
 import Data.Typeable
 import Data.List (foldl', nub, (\\))
 import Language.Haskell.TH.Syntax
@@ -143,18 +144,22 @@ instance ToLit Hs.Literal where
   toLit (Hs.String a) = StringL a
   toLit (Hs.Int a) = IntegerL a
   toLit (Hs.Frac a) = RationalL a
-  toLit (Hs.PrimChar a) = CharL a      -- XXX
-#if MIN_VERSION_template_haskell(2,5,0)
+  toLit l@Hs.PrimChar{} = noTH "toLit" l
+#if MIN_VERSION_template_haskell(2,8,0)
+  toLit (Hs.PrimString a) = StringPrimL (map toWord8 a)
+   where
+    toWord8 = fromIntegral . ord
+#elif MIN_VERSION_template_haskell(2,5,0)
   toLit (Hs.PrimString a) = StringPrimL a
-#else /* MIN_VERSION_template_haskell(2,5,0) */
-  toLit (Hs.PrimString a) = StringL a  -- XXX
-#endif /* MIN_VERSION_template_haskell(2,5,0) */
+#else
+  toLit l@Hs.PrimString{} = noTH "toLit" l
+#endif
   toLit (Hs.PrimInt a) = IntPrimL a
   toLit (Hs.PrimFloat a) = FloatPrimL a
   toLit (Hs.PrimDouble a) = DoublePrimL a
 #if MIN_VERSION_template_haskell(2,4,0)
   toLit (Hs.PrimWord a) = WordPrimL a
-#endif /* MIN_VERSION_template_haskell(2,4,0) */
+#endif
 
 
 -----------------------------------------------------------------------------
@@ -304,12 +309,28 @@ instance ToName TyVarBndr where
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 #if MIN_VERSION_template_haskell(2,4,0)
+#if MIN_VERSION_template_haskell(2,8,0)
+
+instance ToType Hs.Kind where
+  toType Hs.KindStar = StarT
+  toType (Hs.KindFn k1 k2) = toType k1 .->. toType k2
+  toType (Hs.KindParen kp) = toType kp
+  toType k@Hs.KindBang = noTH "toKind" k
+  toType (Hs.KindVar n) = VarT (toName n)
+
+toKind :: Hs.Kind -> Kind
+toKind = toType
+
+#else
+
 toKind :: Hs.Kind -> Kind
 toKind Hs.KindStar = StarK
 toKind (Hs.KindFn k1 k2) = ArrowK (toKind k1) (toKind k2)
 toKind (Hs.KindParen kp) = toKind kp
 toKind k@Hs.KindBang = noTH "toKind" k
 toKind k@Hs.KindVar{} = noTH "toKind" k
+
+#endif /* !MIN_VERSION_template_haskell(2,8,0) */
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 #if MIN_VERSION_template_haskell(2,4,0)
@@ -341,7 +362,11 @@ instance ToType Hs.Type where
   toType (Hs.TyParen t) = toType t
   -- XXX: need to wrap the name in parens!
   toType (Hs.TyInfix a o b) = AppT (AppT (ConT (toName o)) (toType a)) (toType b)
-  toType (Hs.TyKind t _) = toType t
+#if MIN_VERSION_template_haskell(2,8,0)
+  toType (Hs.TyKind t k) = SigT (toType t) (toKind k)
+#else
+  toType t@Hs.TyKind{} = noTH "toType" t
+#endif
 
 
 
@@ -420,11 +445,23 @@ instance ToDec Hs.Decl where
       in case xs of x:_ -> x; [] -> error "toDec: malformed TypeSig!"
 
 #if MIN_VERSION_template_haskell(2,4,0)
+#if MIN_VERSION_template_haskell(2,8,0)
+
+  toDec (Hs.InlineConlikeSig _ act qn) = PragmaD $
+    InlineP (toName qn) Inline ConLike (transAct act)
+  toDec (Hs.InlineSig _ b act qn) = PragmaD $
+    InlineP (toName qn) inline FunLike (transAct act)
+   where
+    inline | b = Inline | otherwise = NoInline
+
+#else
 
   toDec (Hs.InlineConlikeSig _ act id)                 = PragmaD $ 
     InlineP (toName id) (InlineSpec True True $ transAct act)
   toDec (Hs.InlineSig _ b act id)                      = PragmaD $ 
     InlineP (toName id) (InlineSpec b False $ transAct act)
+
+#endif /* MIN_VERSION_template_haskell(2,8,0) */
 
   toDec (Hs.TypeFamDecl _ n ns k)
     = FamilyD TypeFam (toName n) (fmap toTyVar ns) (fmap toKind k)
@@ -461,10 +498,17 @@ instance ToDec Hs.Decl where
 
   toDec x = todo "toDec" x
 
+#if MIN_VERSION_template_haskell(2,8,0)
+transAct :: Hs.Activation -> Phases
+transAct Hs.AlwaysActive = AllPhases
+transAct (Hs.ActiveFrom n) = FromPhase n
+transAct (Hs.ActiveUntil n) = BeforePhase n
+#else
 transAct act = case act of
   Hs.AlwaysActive    -> Nothing
   Hs.ActiveFrom n    -> Just (True,n)
   Hs.ActiveUntil n   -> Just (False,n)
+#endif
 
 
 qualConDeclToCon :: Hs.QualConDecl -> Con
@@ -544,6 +588,15 @@ instance ToDecs Hs.Decl where
     = let xs = fmap (flip SigD (fixForall $ toType t) . toName) ns
        in xs
 
+#if MIN_VERSION_template_haskell(2,8,0)
+  toDecs (Hs.InfixDecl _ assoc fixity ops) =
+    map (\op -> InfixD (Fixity fixity dir) (toName op)) ops
+   where
+    dir = case assoc of
+      Hs.AssocNone -> InfixN
+      Hs.AssocLeft -> InfixL
+      Hs.AssocRight -> InfixR
+#endif
 
   toDecs a = [toDec a]
 
