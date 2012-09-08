@@ -56,20 +56,20 @@ gpretty :: (Data a) => a -> String
 gpretty = either (const []) prettyPrint . parseHsExp . gshow
 
 
-instance Show ExpQ where show = show . cleanNames . unQ
-instance Show (Q [Dec]) where show = unlines . fmap (show . cleanNames) . unQ
-instance Show DecQ where show = show . cleanNames . unQ
-instance Show TypeQ where show = show . cleanNames . unQ
-instance Show (Q String) where show = unQ
-instance Show (Q Doc) where show = show . unQ
+instance Show ExpQ where show = show . cleanNames . unsafeRunQ
+instance Show (Q [Dec]) where show = unlines . fmap (show . cleanNames) . unsafeRunQ
+instance Show DecQ where show = show . cleanNames . unsafeRunQ
+instance Show TypeQ where show = show . cleanNames . unsafeRunQ
+instance Show (Q String) where show = unsafeRunQ
+instance Show (Q Doc) where show = show . unsafeRunQ
 
 deriving instance Typeable1 Q
 deriving instance Typeable QuasiQuoter
 
 
--- | @unQ = unsafePerformIO . runQ@
-unQ :: Q a -> a
-unQ = unsafePerformIO . runQ
+-- | @unsafeRunQ = unsafePerformIO . runQ@
+unsafeRunQ :: Q a -> a
+unsafeRunQ = unsafePerformIO . runQ
 
 
 nameToRawCodeStr :: Name -> String
