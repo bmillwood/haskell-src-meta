@@ -167,10 +167,6 @@ instance ToPat Hs.Pat where
     = VarP (toName n)
   toPat (Hs.PLit l)
     = LitP (toLit l)
-{-
-ghci> parseHsPat "-2"
-Right (HsPParen (HsPNeg (HsPLit (HsInt 2))))
--}
   toPat (Hs.PNeg (Hs.PLit l)) = LitP $ case toLit l of
     IntegerL z -> IntegerL (negate z)
     RationalL q -> RationalL (negate q)
@@ -228,20 +224,6 @@ toFieldExp (Hs.FieldUpdate n e) = (toName n, toExp e)
 
 
 instance ToExp Hs.Exp where
-{-
-data HsExp
-  = HsVar HsQName
--}
---  | HsIPVar HsIPName
-{-
-  | HsLet HsBinds HsExp
-  | HsDLet [HsIPBind] HsExp
-  | HsWith HsExp [HsIPBind]
-  | HsCase HsExp [HsAlt]
-  | HsDo [HsStmt]
-  -- use mfix somehow
-  | HsMDo [HsStmt]
--}
   toExp (Hs.Var n)                 = VarE (toName n)
   toExp (Hs.Con n)                 = ConE (toName n)
   toExp (Hs.Lit l)                 = LitE (toLit l)
@@ -256,7 +238,6 @@ data HsExp
   toExp (Hs.NegApp e)              = AppE (VarE 'negate) (toExp e)
   toExp (Hs.Lambda _ ps e)         = LamE (fmap toPat ps) (toExp e)
   toExp (Hs.Let bs e)              = LetE (hsBindsToDecs bs) (toExp e)
-  -- toExp (HsWith e bs
   toExp (Hs.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
   toExp (Hs.Do ss)                 = DoE (map toStmt ss)
   -- toExp (HsMDo ss)
@@ -278,17 +259,6 @@ data HsExp
    where
     convert (Hs.QualStmt st) = toStmt st
     convert s = noTH "toExp ListComp" s
-  -- NEED: a way to go e -> Stmt
-{- HsVarQuote HsQName
-  | HsTypQuote HsQName
-  | HsBracketExp HsBracket
-  | HsSpliceExp HsSplice
-data HsBracket
-  = HsExpBracket HsExp
-  | HsPatBracket HsPat
-  | HsTypeBracket HsType
-  | HsDeclBracket [HsDecl]
-data HsSplice = HsIdSplice String | HsParenSplice HsExp -}
   toExp (Hs.Case e alts) = CaseE (toExp e) (map toMatch alts)
   toExp e = todo "toExp" e
 
@@ -308,36 +278,6 @@ toBody (Hs.GuardedAlts alts) = GuardedB $ do
 
 toGuard (Hs.GuardedAlt _ ([Hs.Qualifier e1]) e2) = (NormalG $ toExp e1,toExp e2)
 
------------------------------------------------------------------------------
-
-{-
-class ToName a where toName :: a -> Name
-class ToLit  a where toLit  :: a -> Lit
-class ToType a where toType :: a -> Type
-class ToPat  a where toPat  :: a -> Pat
-class ToExp  a where toExp  :: a -> Exp
-class ToDec  a where toDec  :: a -> Dec
-class ToStmt a where toStmt :: a -> Stmt
-class ToLoc  a where toLoc  :: a -> Loc
--}
-
-{-
-TODO:
-  []
-
-PARTIAL:
-  * ToExp HsExp
-  * ToStmt HsStmt
-  * ToDec HsDecl
-
-DONE:
-  * ToLit HsLiteral
-  * ToName {..}
-  * ToPat HsPat
-  * ToLoc SrcLoc
-  * ToType HsType
-
--}
 -----------------------------------------------------------------------------
 
 -- * ToLoc SrcLoc
@@ -382,13 +322,6 @@ toTyVar (Hs.KindedVar n _) = toName n
 toTyVar (Hs.UnkindedVar n) = toName n
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
-{- |
-TH does't handle
-  * unboxed tuples
-  * implicit params
-  * infix type constructors
-  * kind signatures
--}
 instance ToType Hs.Type where
   toType (Hs.TyForall tvbM cxt t) = ForallT (maybe [] (fmap toTyVar) tvbM) (toCxt cxt) (toType t)
   toType (Hs.TyFun a b) = toType a .->. toType b
@@ -408,11 +341,6 @@ instance ToType Hs.Type where
 (.->.) :: Type -> Type -> Type
 a .->. b = AppT (AppT ArrowT a) b
 
-{- |
-TH doesn't handle:
-  * implicit params
--}
-
 toCxt :: Hs.Context -> Cxt
 toCxt = fmap toPred
  where
@@ -421,12 +349,12 @@ toCxt = fmap toPred
   toPred (Hs.InfixA t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
   toPred (Hs.EqualP t1 t2) = EqualP (toType t1) (toType t2)
   toPred a@Hs.IParam{} = noTH "toCxt" a
-#else /* !MIN_VERSION_template_haskell(2,4,0) */
+#else
   toPred (Hs.ClassA n ts) = foldAppT (ConT (toName n)) (fmap toType ts)
   toPred (Hs.InfixA t1 n t2) = foldAppT (ConT (toName n)) (fmap toType [t1, t2])
   toPred a@Hs.EqualP{} = noTH "toCxt" a
   toPred a@Hs.IParam{} = noTH "toCxt" a
-#endif /* !MIN_VERSION_template_haskell(2,4,0) */
+#endif
 
 foldAppT :: Type -> [Type] -> Type
 foldAppT t ts = foldl' AppT t ts
@@ -445,33 +373,14 @@ instance ToStmt Hs.Stmt where
 
 -- * ToDec HsDecl
 
--- data HsBinds = HsBDecls [HsDecl] | HsIPBinds [HsIPBind]
 hsBindsToDecs :: Hs.Binds -> [Dec]
 hsBindsToDecs (Hs.BDecls ds) = fmap toDec ds
 hsBindsToDecs a@Hs.IPBinds{} = noTH "hsBindsToDecs" a
--- data HsIPBind = HsIPBind SrcLoc HsIPName HsExp
 
 
 hsBangTypeToStrictType :: Hs.BangType -> (Strict, Type)
 hsBangTypeToStrictType (Hs.BangedTy t)   = (IsStrict, toType t)
 hsBangTypeToStrictType (Hs.UnBangedTy t) = (NotStrict, toType t)
-
-
-{-
-data HsTyVarBind = HsKindedVar HsName HsKind | HsUnkindedVar HsName
-data HsConDecl
-  = HsConDecl HsName [HsBangType]
-  | HsRecDecl HsName [([HsName], HsBangType)]
--}
-{-
-hsQualConDeclToCon :: HsQualConDecl -> Con
-hsQualConDeclToCon (HsQualConDecl _ tvbs cxt condec) =
-  case condec of
-    HsConDecl n bangs ->
-    HsRecDecl n assocs ->
--}
-
-
 
 
 instance ToDec Hs.Decl where
@@ -494,28 +403,6 @@ instance ToDec Hs.Decl where
                                     (fmap toTyVar ns)
                                     (qualConDeclToCon qcd)
                                     (fmap (toName . fst) qns)
-
--- data Hs.BangType
---   = Hs.BangedTy Hs.Type
---   | Hs.UnBangedTy Hs.Type
---   | Hs.UnpackedTy Hs.Type
--- data Hs.TyVarBind
---   = Hs.KindedVar Hs.Name Hs.Kind | Hs.UnkindedVar Hs.Name
--- data Hs.DataOrNew = Hs.DataType | Hs.NewType
--- data Hs.QualConDecl
---   = Hs.QualConDecl Hs.SrcLoc [Hs.TyVarBind] Hs.Context Hs.ConDecl
--- data Hs.ConDecl
---   = Hs.ConDecl Hs.Name [Hs.BangType]
---   | Hs.RecDecl Hs.Name [([Hs.Name], Hs.BangType)]
-
--- data Con
---   = NormalC Name [StrictType]
---   | RecC Name [VarStrictType]
---   | InfixC StrictType Name StrictType
---   | ForallC [Name] Cxt Con
--- type StrictType = (Strict, Type)
--- type VarStrictType = (Name, Strict, Type)
-
 
   -- This type-signature conversion is just wrong. 
   -- Type variables need to be dealt with. /Jonas
@@ -540,15 +427,7 @@ instance ToDec Hs.Decl where
 
 #endif /* MIN_VERSION_template_haskell(2,4,0) */
 
-{- data HsDecl = ... | HsFunBind [HsMatch] | ...
-data HsMatch = HsMatch SrcLoc HsName [HsPat] HsRhs HsBinds
-data Dec = FunD Name [Clause] | ...
-data Clause = Clause [Pat] Body [Dec] -}
   toDec a@(Hs.FunBind mtchs)                           = hsMatchesToFunD mtchs
-{- ghci> parseExp "let x = 2 in x"
-LetE [ValD (VarP x) (NormalB (LitE (IntegerL 2))) []] (VarE x)
-ghci> unQ[| let x = 2 in x |]
-LetE [ValD (VarP x_0) (NormalB (LitE (IntegerL 2))) []] (VarE x_0) -}
   toDec (Hs.PatBind _ p tM rhs bnds)                   = ValD ((maybe id
                                                                       (flip SigP . toType)
                                                                       tM) (toPat p))
@@ -572,42 +451,7 @@ LetE [ValD (VarP x_0) (NormalB (LitE (IntegerL 2))) []] (VarE x_0) -}
       x -> todo "classDecl" x
     toFunDep (Hs.FunDep ls rs) = FunDep (fmap toName ls) (fmap toName rs)
 
-{- TODO
-GDataDecl SrcLoc
-              DataOrNew
-              Context
-              Name
-              [TyVarBind]
-              (Maybe Kind)
-              [GadtDecl]
-              [Deriving]
-  | TypeInsDecl SrcLoc Type Type
-  | DataInsDecl SrcLoc DataOrNew Type [QualConDecl] [Deriving]
-  | GDataInsDecl SrcLoc
-                 DataOrNew
-                 Type
-                 (Maybe Kind)
-                 [GadtDecl]
-                 [Deriving]
- DerivDecl SrcLoc Context QName [Type]
- InfixDecl SrcLoc Assoc Int [Op]
- DefaultDecl SrcLoc [Type]
- SpliceDecl SrcLoc Exp
- ForImp SrcLoc CallConv Safety String Name Type
- ForExp SrcLoc CallConv String Name Type
- RulePragmaDecl SrcLoc [Rule]
- DeprPragmaDecl SrcLoc [([Name], String)]
- WarnPragmaDecl SrcLoc [([Name], String)]
- SpecSig SrcLoc QName [Type]
- SpecInlineSig SrcLoc Bool Activation QName [Type]
- InstSig SrcLoc Context QName [Type]
- AnnPragma SrcLoc Annotation
--}
-
   toDec x = todo "toDec" x
-
--- data Hs.Decl = ... | Hs.SpliceDecl Hs.SrcLoc Hs.Splice | ...
--- data Hs.Splice = Hs.IdSplice String | Hs.ParenSplice Hs.Exp
 
 transAct act = case act of
   Hs.AlwaysActive    -> Nothing
@@ -615,24 +459,16 @@ transAct act = case act of
   Hs.ActiveUntil n   -> Just (False,n)
 
 
-
-
-
-
-
-
 qualConDeclToCon :: Hs.QualConDecl -> Con
 qualConDeclToCon (Hs.QualConDecl _ [] [] cdecl) = conDeclToCon cdecl
 qualConDeclToCon (Hs.QualConDecl _ ns cxt cdecl) = ForallC (fmap toTyVar ns)
                                                     (toCxt cxt)
                                                     (conDeclToCon cdecl)
-
 conDeclToCon :: Hs.ConDecl -> Con
 conDeclToCon (Hs.ConDecl n tys)
   = NormalC (toName n) (fmap bangToStrictType tys)
 conDeclToCon (Hs.RecDecl n lbls)
   = RecC (toName n) (concatMap (uncurry bangToVarStrictTypes) lbls)
-
 
 
 bangToVarStrictTypes :: [Hs.Name] -> Hs.BangType -> [VarStrictType]
@@ -658,10 +494,6 @@ hsMatchToClause (Hs.Match _ _ ps _ rhs bnds) = Clause
 
 
 
--- data HsRhs = HsUnGuardedRhs HsExp | HsGuardedRhs [HsGuardedRhs]
--- data HsGuardedRhs = HsGuardedRhs SrcLoc [HsStmt] HsExp
--- data Body = GuardedB [(Guard, Exp)] | NormalB Exp
--- data Guard = NormalG Exp | PatG [Stmt]
 hsRhsToBody :: Hs.Rhs -> Body
 hsRhsToBody (Hs.UnGuardedRhs e) = NormalB (toExp e)
 hsRhsToBody (Hs.GuardedRhss hsgrhs) = let fromGuardedB (GuardedB a) = a
@@ -700,8 +532,6 @@ instance ToDecs Hs.InstDecl where
 -- * ToDecs HsDecl HsBinds
 
 instance ToDecs Hs.Decl where
---  toDecs a@(Hs.InfixDecl _ asst i ops)    = [] -- HACK
---  toDecs (Hs.InlineSig _ _ _ _)  = []          -- HACK
   toDecs a@(Hs.TypeSig _ ns t)
     = let xs = fmap (flip SigD (fixForall $ toType t) . toName) ns
        in xs
