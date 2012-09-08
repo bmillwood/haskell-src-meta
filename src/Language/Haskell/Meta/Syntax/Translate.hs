@@ -362,11 +362,7 @@ instance ToType Hs.Type where
   toType (Hs.TyParen t) = toType t
   -- XXX: need to wrap the name in parens!
   toType (Hs.TyInfix a o b) = AppT (AppT (ConT (toName o)) (toType a)) (toType b)
-#if MIN_VERSION_template_haskell(2,8,0)
   toType (Hs.TyKind t k) = SigT (toType t) (toKind k)
-#else
-  toType t@Hs.TyKind{} = noTH "toType" t
-#endif
 
 
 
