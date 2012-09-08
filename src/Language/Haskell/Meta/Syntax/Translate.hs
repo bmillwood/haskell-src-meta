@@ -128,6 +128,10 @@ instance ToName Hs.QName where
   toName (Hs.Special s) = toName s
 
 
+instance ToName Hs.Op where
+  toName (Hs.VarOp n) = toName n
+  toName (Hs.ConOp n) = toName n
+
 
 -----------------------------------------------------------------------------
 
