@@ -240,7 +240,7 @@ instance ToExp Hs.Exp where
   toExp (Hs.Let bs e)              = LetE (hsBindsToDecs bs) (toExp e)
   toExp (Hs.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
   toExp (Hs.Do ss)                 = DoE (map toStmt ss)
-  -- toExp (HsMDo ss)
+  toExp e@(Hs.MDo _)               = noTH "toExp" e
   toExp (Hs.Tuple xs)              = TupE (fmap toExp xs)
   toExp (Hs.List xs)               = ListE (fmap toExp xs)
 #if MIN_VERSION_template_haskell(2,7,0)
@@ -326,7 +326,15 @@ instance ToType Hs.Type where
   toType (Hs.TyForall tvbM cxt t) = ForallT (maybe [] (fmap toTyVar) tvbM) (toCxt cxt) (toType t)
   toType (Hs.TyFun a b) = toType a .->. toType b
   toType (Hs.TyList t) = ListT `AppT` toType t
-  toType (Hs.TyTuple _ ts) = foldAppT (TupleT . length $ ts) (fmap toType ts)
+  toType (Hs.TyTuple b ts) = foldAppT (tuple . length $ ts) (fmap toType ts)
+   where
+    tuple = case b of
+      Hs.Boxed -> TupleT
+#if MIN_VERSION_template_haskell(2,6,0)
+      Hs.Unboxed -> UnboxedTupleT
+#else
+      Hs.Unboxed -> noTH "toType TyTuple" (Hs.TyTuple b ts)
+#endif
   toType (Hs.TyApp a b) = AppT (toType a) (toType b)
   toType (Hs.TyVar n) = VarT (toName n)
   toType (Hs.TyCon qn) = ConT (toName qn)
