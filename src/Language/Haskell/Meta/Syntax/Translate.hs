@@ -22,7 +22,10 @@ import qualified Language.Haskell.Exts.Syntax as Hs
 -----------------------------------------------------------------------------
 
 
-class ToName a where toName :: a -> Name
+class ToName a where
+  toName     :: a -> Name
+  toTypeName :: a -> Name
+
 class ToLit  a where toLit  :: a -> Lit
 class ToType a where toType :: a -> Type
 class ToPat  a where toPat  :: a -> Pat
@@ -96,26 +99,38 @@ instance ToLit Double where
 
 
 instance ToName String where
-  toName = mkName
+  toName     = mkName
+  toTypeName = mkName
 
 instance ToName Hs.Name where
   toName (Hs.Ident s) = toName s
   toName (Hs.Symbol s) = toName s
 
+  toTypeName (Hs.Ident s)  = toTypeName s
+  toTypeName (Hs.Symbol s) = toTypeName s
+
 instance ToName Hs.Module where
   toName (Hs.Module _ (Hs.ModuleName s) _ _ _ _ _) = toName s
-
+  toTypeName (Hs.Module _ (Hs.ModuleName s) _ _ _ _ _) = toTypeName s
 
 instance ToName Hs.SpecialCon where
   toName Hs.UnitCon = '()
   toName Hs.ListCon = '[]
-  toName Hs.FunCon  = ''(->)
   toName (Hs.TupleCon _ n)
     | n<2 = '()
     | otherwise =
       let x = maybe [] (++".") (nameModule '(,))
       in mkName . concat $ x : ["(",replicate (n-1) ',',")"]
   toName Hs.Cons    = '(:)
+
+  toTypeName Hs.UnitCon = ''()
+  toTypeName Hs.ListCon = ''[]
+  toTypeName Hs.FunCon  = ''(->)
+  toTypeName (Hs.TupleCon _ n)
+    | n<2 = ''()
+    | otherwise =
+      let x = maybe [] (++".") (nameModule ''(,))
+      in mkName . concat $ x : ["(",replicate (n-1) ',',")"]
 
 
 instance ToName Hs.QName where
@@ -128,10 +143,21 @@ instance ToName Hs.QName where
   toName (Hs.UnQual n) = toName n
   toName (Hs.Special s) = toName s
 
+  toTypeName (Hs.Qual (Hs.ModuleName []) n) = toTypeName n
+  toTypeName (Hs.Qual (Hs.ModuleName m) n) =
+    let m' = show . toTypeName $ m
+        n' = show . toTypeName $ n
+    in toTypeName . concat $ [m',".",n']
+  toTypeName (Hs.UnQual n) = toTypeName n
+  toTypeName (Hs.Special s) = toTypeName s
+
 
 instance ToName Hs.Op where
   toName (Hs.VarOp n) = toName n
   toName (Hs.ConOp n) = toName n
+
+  toTypeName (Hs.VarOp n) = toTypeName n
+  toTypeName (Hs.ConOp n) = toTypeName n
 
 
 -----------------------------------------------------------------------------
@@ -299,13 +325,20 @@ instance ToName Hs.TyVarBind where
   toName (Hs.KindedVar n _) = toName n
   toName (Hs.UnkindedVar n) = toName n
 
+  toTypeName (Hs.KindedVar n _) = toTypeName n
+  toTypeName (Hs.UnkindedVar n) = toTypeName n
+
 instance ToName Name where
-  toName = id
+  toName     = id
+  toTypeName = id
 
 #if MIN_VERSION_template_haskell(2,4,0)
 instance ToName TyVarBndr where
   toName (PlainTV n) = n
   toName (KindedTV n _) = n
+
+  toTypeName (PlainTV n) = n
+  toTypeName (KindedTV n _) = n
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 #if MIN_VERSION_template_haskell(2,4,0)
@@ -316,7 +349,7 @@ instance ToType Hs.Kind where
   toType (Hs.KindFn k1 k2) = toType k1 .->. toType k2
   toType (Hs.KindParen kp) = toType kp
   toType k@Hs.KindBang = noTH "toKind" k
-  toType (Hs.KindVar n) = VarT (toName n)
+  toType (Hs.KindVar n) = VarT (toTypeName n)
 
 toKind :: Hs.Kind -> Kind
 toKind = toType
@@ -335,12 +368,12 @@ toKind k@Hs.KindVar{} = noTH "toKind" k
 
 #if MIN_VERSION_template_haskell(2,4,0)
 toTyVar :: Hs.TyVarBind -> TyVarBndr
-toTyVar (Hs.KindedVar n k) = KindedTV (toName n) (toKind k)
-toTyVar (Hs.UnkindedVar n) = PlainTV (toName n)
+toTyVar (Hs.KindedVar n k) = KindedTV (toTypeName n) (toKind k)
+toTyVar (Hs.UnkindedVar n) = PlainTV (toTypeName n)
 #else /* !MIN_VERSION_template_haskell(2,4,0) */
 toTyVar :: Hs.TyVarBind -> Name
-toTyVar (Hs.KindedVar n _) = toName n
-toTyVar (Hs.UnkindedVar n) = toName n
+toTyVar (Hs.KindedVar n _) = toTypeName n
+toTyVar (Hs.UnkindedVar n) = toTypeName n
 #endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 instance ToType Hs.Type where
@@ -357,11 +390,11 @@ instance ToType Hs.Type where
       Hs.Unboxed -> noTH "toType TyTuple" (Hs.TyTuple b ts)
 #endif
   toType (Hs.TyApp a b) = AppT (toType a) (toType b)
-  toType (Hs.TyVar n) = VarT (toName n)
-  toType (Hs.TyCon qn) = ConT (toName qn)
+  toType (Hs.TyVar n) = VarT (toTypeName n)
+  toType (Hs.TyCon qn) = ConT (toTypeName qn)
   toType (Hs.TyParen t) = toType t
   -- XXX: need to wrap the name in parens!
-  toType (Hs.TyInfix a o b) = AppT (AppT (ConT (toName o)) (toType a)) (toType b)
+  toType (Hs.TyInfix a o b) = AppT (AppT (ConT (toTypeName o)) (toType a)) (toType b)
   toType (Hs.TyKind t k) = SigT (toType t) (toKind k)
 
 
@@ -374,13 +407,13 @@ toCxt :: Hs.Context -> Cxt
 toCxt = fmap toPred
  where
 #if MIN_VERSION_template_haskell(2,4,0)
-  toPred (Hs.ClassA n ts) = ClassP (toName n) (fmap toType ts)
-  toPred (Hs.InfixA t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
+  toPred (Hs.ClassA n ts) = ClassP (toTypeName n) (fmap toType ts)
+  toPred (Hs.InfixA t1 n t2) = ClassP (toTypeName n) (fmap toType [t1, t2])
   toPred (Hs.EqualP t1 t2) = EqualP (toType t1) (toType t2)
   toPred a@Hs.IParam{} = noTH "toCxt" a
 #else
-  toPred (Hs.ClassA n ts) = foldAppT (ConT (toName n)) (fmap toType ts)
-  toPred (Hs.InfixA t1 n t2) = foldAppT (ConT (toName n)) (fmap toType [t1, t2])
+  toPred (Hs.ClassA n ts) = foldAppT (ConT (toTypeName n)) (fmap toType ts)
+  toPred (Hs.InfixA t1 n t2) = foldAppT (ConT (toTypeName n)) (fmap toType [t1, t2])
   toPred a@Hs.EqualP{} = noTH "toCxt" a
   toPred a@Hs.IParam{} = noTH "toCxt" a
 #endif
