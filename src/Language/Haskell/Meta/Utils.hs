@@ -63,7 +63,11 @@ instance Show TypeQ where show = show . cleanNames . unsafeRunQ
 instance Show (Q String) where show = unsafeRunQ
 instance Show (Q Doc) where show = show . unsafeRunQ
 
+#if MIN_VERSION_base(4,7,0)
+deriving instance Typeable Q
+#else
 deriving instance Typeable1 Q
+#endif
 deriving instance Typeable QuasiQuoter
 
 
