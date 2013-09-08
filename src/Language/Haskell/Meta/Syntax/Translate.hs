@@ -186,7 +186,7 @@ instance ToPat Hs.Pat where
   toPat (Hs.PInfixApp p n q)= InfixP (toPat p) (toName n) (toPat q)
 #endif
   toPat (Hs.PApp n ps) = ConP (toName n) (fmap toPat ps)
-  toPat (Hs.PTuple ps) = TupP (fmap toPat ps)
+  toPat (Hs.PTuple _ ps) = TupP (fmap toPat ps)
   toPat (Hs.PList ps) = ListP (fmap toPat ps)
 #if MIN_VERSION_template_haskell(2,7,0)  
   toPat (Hs.PParen p) = ParensP (toPat p)  
@@ -246,7 +246,7 @@ instance ToExp Hs.Exp where
   toExp (Hs.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
   toExp (Hs.Do ss)                 = DoE (map toStmt ss)
   toExp e@(Hs.MDo _)               = noTH "toExp" e
-  toExp (Hs.Tuple xs)              = TupE (fmap toExp xs)
+  toExp (Hs.Tuple _ xs)              = TupE (fmap toExp xs)
   toExp (Hs.List xs)               = ListE (fmap toExp xs)
 #if MIN_VERSION_template_haskell(2,7,0)
   toExp (Hs.Paren e)               = ParensE (toExp e)
