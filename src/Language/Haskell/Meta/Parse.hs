@@ -57,7 +57,8 @@ parseDecs  = either Left (Right . toDecs) . parseHsDecls
 myDefaultParseMode :: ParseMode
 myDefaultParseMode = ParseMode
   {parseFilename = []
-  ,extensions = myDefaultExtensions
+  ,baseLanguage = Haskell2010
+  ,extensions = map EnableExtension myDefaultExtensions
   ,ignoreLinePragmas = False
   ,ignoreLanguagePragmas = False
   ,fixities = defaultFixities}
@@ -86,7 +87,7 @@ instance DefaultFixities a => DefaultFixities [a] where
 instance DefaultFixities a => DefaultFixities (Maybe a) where
   defaultFixities = Just defaultFixities
 
-myDefaultExtensions :: [Extension]
+myDefaultExtensions :: [KnownExtension]
 myDefaultExtensions = [PostfixOperators
                       ,QuasiQuotes
                       ,UnicodeSyntax
