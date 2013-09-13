@@ -412,17 +412,6 @@ hsBangTypeToStrictType (Hs.BangedTy t)   = (IsStrict, toType t)
 hsBangTypeToStrictType (Hs.UnBangedTy t) = (NotStrict, toType t)
 
 
-hsTypeToNameAndTypes :: Hs.Type -> (Name, [Type])
-hsTypeToNameAndTypes = getTypes [] . toType
- where
-  getTypes ts (AppT a b)      = getTypes (b : ts) a
-  getTypes ts (ForallT _ _ a) = getTypes ts a
-  getTypes ts (ConT con)      = (con, ts)
-  getTypes ts (VarT con)      = (con, ts)
-  getTypes ts (PromotedT con) = (con, ts)
-  getTypes _ a = nonsense "hsTypeToNameAndTypes" "Unexpected type" a
-
-
 instance ToDec Hs.Decl where
   toDec (Hs.TypeDecl _ n ns t)
     = TySynD (toName n) (fmap toTyVar ns) (toType t)
@@ -476,22 +465,6 @@ instance ToDec Hs.Decl where
   -- TODO: do something with context?
   toDec (Hs.DataFamDecl _ _ n ns k)
     = FamilyD DataFam (toName n) (fmap toTyVar ns) (fmap toKind k)
-
-  -- Had family declarations, but no instances.
-  toDec (Hs.TypeInsDecl _ t0 t1)
-    = let (n, ts) = hsTypeToNameAndTypes t0
-      in TySynInstD n ts (toType t1)
-
-  toDec (Hs.DataInsDecl _ Hs.DataType t qcds qns)
-    = let (n, ts) = hsTypeToNameAndTypes t
-      in DataInstD [] n ts
-        (fmap qualConDeclToCon qcds)
-        (fmap (toName . fst) qns)
-  toDec (Hs.DataInsDecl _ Hs.NewType t (q:_) qns)
-    = let (n, ts) = hsTypeToNameAndTypes t
-      in NewtypeInstD [] n ts
-        (qualConDeclToCon q)
-        (fmap (toName . fst) qns)
 
 #endif /* MIN_VERSION_template_haskell(2,4,0) */
 
