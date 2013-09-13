@@ -12,6 +12,10 @@ module Language.Haskell.Meta.Parse (
   parseExp,
   parseType,
   parseDecs,
+  parsePatWithMode,
+  parseExpWithMode,
+  parseTypeWithMode,
+  parseDecsWithMode,
   myDefaultParseMode,
   myDefaultExtensions,
   parseResultToEither,
@@ -20,10 +24,16 @@ module Language.Haskell.Meta.Parse (
   parseHsType,
   parseHsExp,
   parseHsPat,
+  parseHsModuleWithMode,
+  parseHsDeclsWithMode,
+  parseHsTypeWithMode,
+  parseHsExpWithMode,
+  parseHsPatWithMode,
   pprHsModule,
   moduleDecls,
   emptySrcLoc,
-  emptyHsModule
+  emptyHsModule,
+  defaultFixities
  ) where
 
 import Language.Haskell.TH.Syntax
@@ -31,7 +41,10 @@ import Language.Haskell.Meta.Syntax.Translate
 import qualified Language.Haskell.Exts.Syntax as Hs
 import Language.Haskell.Exts.Annotated.Fixity as Fix
 import Language.Haskell.Exts.Extension
-import Language.Haskell.Exts.Parser hiding (parseExp, parseType, parsePat)
+import Language.Haskell.Exts.Parser hiding (
+  parseExp, parseType, parsePat, parseTypeWithMode,
+  parseExpWithMode, parsePatWithMode)
+import qualified Language.Haskell.Exts.Parser as PA
 import Language.Haskell.Exts.Pretty
 
 -----------------------------------------------------------------------------
@@ -39,16 +52,36 @@ import Language.Haskell.Exts.Pretty
 -- * template-haskell
 
 parsePat :: String -> Either String Pat
-parsePat = either Left (Right . toPat) . parseHsPat
+parsePat = fmap toPat . parseHsPat
 
 parseExp :: String -> Either String Exp
-parseExp = either Left (Right . toExp) . parseHsExp
+parseExp = fmap toExp . parseHsExp
 
 parseType :: String -> Either String Type
-parseType = either Left (Right . toType) . parseHsType
+parseType = fmap toType . parseHsType
 
 parseDecs :: String -> Either String [Dec]
-parseDecs  = either Left (Right . toDecs) . parseHsDecls
+parseDecs  = fmap toDecs . parseHsDecls
+
+-- | Compiles a string as Haskell code, retruning a Template Haskell 'Pat' data
+-- type.  Takes a mode dictating what options (extensions etc) to apply.
+parsePatWithMode :: ParseMode -> String -> Either String Pat
+parsePatWithMode m = fmap toPat . parseHsPatWithMode m
+
+-- | Compiles a string as Haskell code, retruning a Template Haskell 'Exp' data
+-- type.  Takes a mode dictating what options (extensions etc) to apply.
+parseExpWithMode :: ParseMode -> String -> Either String Exp
+parseExpWithMode m = fmap toExp . parseHsExpWithMode m
+
+-- | Compiles a string as Haskell code, retruning a Template Haskell 'Type' data
+-- type.  Takes a mode dictating what options (extensions etc) to apply.
+parseTypeWithMode  :: ParseMode -> String -> Either String Type
+parseTypeWithMode m = fmap toType . parseHsTypeWithMode m
+
+-- | Compiles a string as Haskell code, retruning a Template Haskell '[dec]'
+-- data type.  Takes a mode dictating what options (extensions etc) to apply.
+parseDecsWithMode  :: ParseMode -> String -> Either String [Dec]
+parseDecsWithMode m = fmap toDecs . parseHsDeclsWithMode m
 
 -----------------------------------------------------------------------------
 
@@ -104,23 +137,46 @@ parseResultToEither (ParseFailed loc e)
   = let line = Hs.srcLine loc - 1
     in Left (unlines [show line,show loc,e])
 
+
+
+parseHsUsing parser mode = parseResultToEither . parser mode
+parseHsUsingDefault parser = parseHsUsing parser myDefaultParseMode
+
+
+
 parseHsModule :: String -> Either String Hs.Module
-parseHsModule = parseResultToEither . parseModuleWithMode myDefaultParseMode
+parseHsModule = parseHsUsingDefault parseModuleWithMode
 
 parseHsDecls :: String -> Either String [Hs.Decl]
-parseHsDecls = either Left (Right . moduleDecls)
-  . parseResultToEither . parseModuleWithMode myDefaultParseMode
-
+parseHsDecls = fmap moduleDecls . parseHsModule
 
 parseHsType :: String -> Either String Hs.Type
-parseHsType = parseResultToEither . parseTypeWithMode myDefaultParseMode
-
+parseHsType = parseHsUsingDefault PA.parseTypeWithMode
 
 parseHsExp :: String -> Either String Hs.Exp
-parseHsExp = parseResultToEither . parseExpWithMode myDefaultParseMode
+parseHsExp = parseHsUsingDefault PA.parseExpWithMode
 
 parseHsPat :: String -> Either String Hs.Pat
-parseHsPat = parseResultToEither . parsePatWithMode myDefaultParseMode
+parseHsPat = parseHsUsingDefault PA.parsePatWithMode
+
+
+
+parseHsModuleWithMode :: ParseMode -> String -> Either String Hs.Module
+parseHsModuleWithMode = parseHsUsing parseModuleWithMode
+
+parseHsDeclsWithMode :: ParseMode -> String -> Either String [Hs.Decl]
+parseHsDeclsWithMode mode = fmap moduleDecls . parseHsModuleWithMode mode
+
+parseHsTypeWithMode :: ParseMode -> String -> Either String Hs.Type
+parseHsTypeWithMode = parseHsUsing PA.parseTypeWithMode
+
+parseHsExpWithMode :: ParseMode -> String -> Either String Hs.Exp
+parseHsExpWithMode = parseHsUsing PA.parseExpWithMode
+
+parseHsPatWithMode :: ParseMode -> String -> Either String Hs.Pat
+parseHsPatWithMode =  parseHsUsing PA.parsePatWithMode
+
+
 
 pprHsModule :: Hs.Module -> String
 pprHsModule = prettyPrint
@@ -161,3 +217,4 @@ instance Show Module -- Defined in Language.Haskell.Exts.Syntax
 -}
 
 -----------------------------------------------------------------------------
+
