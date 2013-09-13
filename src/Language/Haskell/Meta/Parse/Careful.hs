@@ -24,16 +24,21 @@ When this danger arises, we use this \"careful\" module. It handles \"unresolved
 
 -}
 module Language.Haskell.Meta.Parse.Careful(
-  parsePat, 
-  parseExp, 
-  parseType, 
-  parseDecs
+  parsePat,
+  parseExp,
+  parseType,
+  parseDecs,
+  parsePatWithMode,
+  parseExpWithMode,
+  parseTypeWithMode,
+  parseDecsWithMode
  ) where
 
 import qualified Language.Haskell.Meta.Parse as Sloppy
 import qualified Language.Haskell.Meta.Syntax.Translate as Translate
 import qualified Language.Haskell.TH as TH
 import qualified Language.Haskell.Exts.Syntax as Hs
+import Language.Haskell.Exts.Parser (ParseMode)
 #if !(MIN_VERSION_template_haskell(2,7,0))
 import Data.Generics.Uniplate.Data
 #endif
@@ -56,6 +61,18 @@ parseType = doChecked Sloppy.parseHsType Translate.toType
 parseDecs :: String -> Either String [TH.Dec]
 parseDecs = doChecked Sloppy.parseHsDecls Translate.toDecs
 
+parsePatWithMode :: ParseMode -> String -> Either String TH.Pat
+parsePatWithMode m = doChecked (Sloppy.parseHsPatWithMode m) Translate.toPat
+
+parseExpWithMode :: ParseMode -> String -> Either String TH.Exp
+parseExpWithMode m = doChecked (Sloppy.parseHsExpWithMode m) Translate.toExp
+
+parseTypeWithMode :: ParseMode -> String -> Either String TH.Type
+parseTypeWithMode m = doChecked (Sloppy.parseHsTypeWithMode m) Translate.toType
+
+parseDecsWithMode :: ParseMode -> String -> Either String [TH.Dec]
+parseDecsWithMode m = doChecked (Sloppy.parseHsDeclsWithMode m) Translate.toDecs
+
 #if MIN_VERSION_template_haskell(2,7,0)
 amb = const False
 #else
@@ -71,3 +88,4 @@ amb syn = any isAmbExp (universeBi syn) || any isAmbPat (universeBi syn)
     isAmbPat (Hs.PInfixApp _ _ Hs.PInfixApp{}) = True
     isAmbPat _ = False
 #endif
+
