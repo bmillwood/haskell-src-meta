@@ -38,7 +38,12 @@ moduleName = "Language.Haskell.Meta.Syntax.Translate"
 -- When to use each of these isn't always clear: prefer 'todo' if unsure.
 noTH :: Show e => String -> e -> a
 noTH fun thing = error . concat $ [moduleName, ".", fun,
-  ": no TH representation for: ", show thing]
+  ": template-haskell has no representation for: ", show thing]
+
+noTHyet :: Show e => String -> String -> e -> a
+noTHyet fun minVersion thing = error . concat $ [moduleName, ".", fun,
+  ": template-haskell-", VERSION_template_haskell, " (< ", minVersion, ")",
+  " has no representation for: ", show thing]
 
 todo :: Show e => String -> e -> a
 todo fun thing = error . concat $ [moduleName, ".", fun,
@@ -186,7 +191,12 @@ instance ToPat Hs.Pat where
   toPat (Hs.PInfixApp p n q)= InfixP (toPat p) (toName n) (toPat q)
 #endif
   toPat (Hs.PApp n ps) = ConP (toName n) (fmap toPat ps)
-  toPat (Hs.PTuple ps) = TupP (fmap toPat ps)
+  toPat (Hs.PTuple Hs.Boxed ps) = TupP (fmap toPat ps)
+#if MIN_VERSION_template_haskell(2,6,0)
+  toPat (Hs.PTuple Hs.Unboxed ps) = UnboxedTupP (fmap toPat ps)
+#else
+  toPat p@(Hs.PTuple Hs.Unboxed _) = noTHyet "toPat" "2.6.0" p
+#endif
   toPat (Hs.PList ps) = ListP (fmap toPat ps)
 #if MIN_VERSION_template_haskell(2,7,0)  
   toPat (Hs.PParen p) = ParensP (toPat p)  
@@ -246,7 +256,12 @@ instance ToExp Hs.Exp where
   toExp (Hs.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
   toExp (Hs.Do ss)                 = DoE (map toStmt ss)
   toExp e@(Hs.MDo _)               = noTH "toExp" e
-  toExp (Hs.Tuple xs)              = TupE (fmap toExp xs)
+  toExp (Hs.Tuple Hs.Boxed xs)     = TupE (fmap toExp xs)
+#if MIN_VERSION_template_haskell(2,6,0)
+  toExp (Hs.Tuple Hs.Unboxed xs)   = UnboxedTupE (fmap toExp xs)
+#else
+  toExp e@(Hs.Tuple Hs.Unboxed _)  = noTHyet "toExp" "2.6.0" e
+#endif
   toExp (Hs.List xs)               = ListE (fmap toExp xs)
 #if MIN_VERSION_template_haskell(2,7,0)
   toExp (Hs.Paren e)               = ParensE (toExp e)

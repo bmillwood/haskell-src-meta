@@ -57,36 +57,13 @@ parseDecs  = either Left (Right . toDecs) . parseHsDecls
 myDefaultParseMode :: ParseMode
 myDefaultParseMode = ParseMode
   {parseFilename = []
-  ,extensions = myDefaultExtensions
+  ,baseLanguage = Haskell2010
+  ,extensions = map EnableExtension myDefaultExtensions
   ,ignoreLinePragmas = False
   ,ignoreLanguagePragmas = False
-  ,fixities = defaultFixities}
+  ,fixities = Just baseFixities}
 
--- This is a silly hack to make things work on haskell-src-exts versions
--- 1.10 and 1.11 simultaneously. I justify it because myDefaultParseMode is
--- deprecated anyway.
---
--- Essentially we want defaultFixities to be baseFixities or Just baseFixities
--- as appropriate. We do this without requiring FlexibleInstances using the
--- same trick as Show on lists does.
-class DefaultFixities a where
-  defaultFixities :: a
-  defaultFixities =
-    error "Language.Haskell.Meta.Parse.defaultFixities undefined"
-  defaultFixityList :: [a]
-  defaultFixityList =
-    error "Language.Haskell.Meta.Parse.defaultFixityList undefined"
-
-instance DefaultFixities Fix.Fixity where
-  defaultFixityList = baseFixities
-
-instance DefaultFixities a => DefaultFixities [a] where
-  defaultFixities = defaultFixityList
-
-instance DefaultFixities a => DefaultFixities (Maybe a) where
-  defaultFixities = Just defaultFixities
-
-myDefaultExtensions :: [Extension]
+myDefaultExtensions :: [KnownExtension]
 myDefaultExtensions = [PostfixOperators
                       ,QuasiQuotes
                       ,UnicodeSyntax
