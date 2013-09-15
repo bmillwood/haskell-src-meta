@@ -332,7 +332,7 @@ toKind Hs.KindStar = StarK
 toKind (Hs.KindFn k1 k2) = ArrowK (toKind k1) (toKind k2)
 toKind (Hs.KindParen kp) = toKind kp
 toKind k@Hs.KindBang = noTH "toKind" k
-toKind k@Hs.KindVar{} = noTH "toKind" k
+toKind k@Hs.KindVar{} = noTHyet "toKind" "2.8.0" k
 
 #endif /* !MIN_VERSION_template_haskell(2,8,0) */
 
@@ -351,7 +351,7 @@ instance ToType Hs.Type where
 #if MIN_VERSION_template_haskell(2,6,0)
       Hs.Unboxed -> UnboxedTupleT
 #else
-      Hs.Unboxed -> noTH "toType TyTuple" (Hs.TyTuple b ts)
+      Hs.Unboxed -> noTHyet "toType TyTuple" "2.6.0" (Hs.TyTuple b ts)
 #endif
   toType (Hs.TyApp a b) = AppT (toType a) (toType b)
   toType (Hs.TyVar n) = VarT (toName n)
