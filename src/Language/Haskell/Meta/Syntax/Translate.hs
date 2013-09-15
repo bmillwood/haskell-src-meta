@@ -154,17 +154,13 @@ instance ToLit Hs.Literal where
   toLit (Hs.PrimString a) = StringPrimL (map toWord8 a)
    where
     toWord8 = fromIntegral . ord
-#elif MIN_VERSION_template_haskell(2,5,0)
-  toLit (Hs.PrimString a) = StringPrimL a
 #else
-  toLit l@Hs.PrimString{} = noTH "toLit" l
+  toLit (Hs.PrimString a) = StringPrimL a
 #endif
   toLit (Hs.PrimInt a) = IntPrimL a
   toLit (Hs.PrimFloat a) = FloatPrimL a
   toLit (Hs.PrimDouble a) = DoublePrimL a
-#if MIN_VERSION_template_haskell(2,4,0)
   toLit (Hs.PrimWord a) = WordPrimL a
-#endif
 
 
 -----------------------------------------------------------------------------
@@ -209,9 +205,7 @@ instance ToPat Hs.Pat where
   toPat (Hs.PWildCard) = WildP
   toPat (Hs.PIrrPat p) = TildeP (toPat p)
   toPat (Hs.PatTypeSig _ p t) = SigP (toPat p) (toType t)
-#if MIN_VERSION_template_haskell(2,5,0)
   toPat (Hs.PViewPat e p) = ViewP (toExp e) (toPat p)
-#endif
   -- regular pattern
   toPat p@Hs.PRPat{} = noTH "toPat" p
   -- XML stuff
@@ -219,9 +213,7 @@ instance ToPat Hs.Pat where
   toPat p@Hs.PXETag{} = noTH "toPat" p
   toPat p@Hs.PXPcdata{} = noTH "toPat" p
   toPat p@Hs.PXPatTag{} = noTH "toPat" p
-#if MIN_VERSION_template_haskell(2,4,0)
   toPat (Hs.PBangPat p) = BangP (toPat p)
-#endif /* MIN_VERSION_template_haskell(2,4,0) */
   toPat p = todo "toPat" p
 
 -----------------------------------------------------------------------------
@@ -317,13 +309,10 @@ instance ToName Hs.TyVarBind where
 instance ToName Name where
   toName = id
 
-#if MIN_VERSION_template_haskell(2,4,0)
 instance ToName TyVarBndr where
   toName (PlainTV n) = n
   toName (KindedTV n _) = n
-#endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
-#if MIN_VERSION_template_haskell(2,4,0)
 #if MIN_VERSION_template_haskell(2,8,0)
 
 instance ToType Hs.Kind where
@@ -346,17 +335,10 @@ toKind k@Hs.KindBang = noTH "toKind" k
 toKind k@Hs.KindVar{} = noTH "toKind" k
 
 #endif /* !MIN_VERSION_template_haskell(2,8,0) */
-#endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
-#if MIN_VERSION_template_haskell(2,4,0)
 toTyVar :: Hs.TyVarBind -> TyVarBndr
 toTyVar (Hs.KindedVar n k) = KindedTV (toName n) (toKind k)
 toTyVar (Hs.UnkindedVar n) = PlainTV (toName n)
-#else /* !MIN_VERSION_template_haskell(2,4,0) */
-toTyVar :: Hs.TyVarBind -> Name
-toTyVar (Hs.KindedVar n _) = toName n
-toTyVar (Hs.UnkindedVar n) = toName n
-#endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 instance ToType Hs.Type where
   toType (Hs.TyForall tvbM cxt t) = ForallT (maybe [] (fmap toTyVar) tvbM) (toCxt cxt) (toType t)
@@ -388,17 +370,10 @@ a .->. b = AppT (AppT ArrowT a) b
 toCxt :: Hs.Context -> Cxt
 toCxt = fmap toPred
  where
-#if MIN_VERSION_template_haskell(2,4,0)
   toPred (Hs.ClassA n ts) = ClassP (toName n) (fmap toType ts)
   toPred (Hs.InfixA t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
   toPred (Hs.EqualP t1 t2) = EqualP (toType t1) (toType t2)
   toPred a@Hs.IParam{} = noTH "toCxt" a
-#else
-  toPred (Hs.ClassA n ts) = foldAppT (ConT (toName n)) (fmap toType ts)
-  toPred (Hs.InfixA t1 n t2) = foldAppT (ConT (toName n)) (fmap toType [t1, t2])
-  toPred a@Hs.EqualP{} = noTH "toCxt" a
-  toPred a@Hs.IParam{} = noTH "toCxt" a
-#endif
 
 foldAppT :: Type -> [Type] -> Type
 foldAppT t ts = foldl' AppT t ts
@@ -455,7 +430,6 @@ instance ToDec Hs.Decl where
     = let xs = fmap (flip SigD (toType t) . toName) ns
       in case xs of x:_ -> x; [] -> error "toDec: malformed TypeSig!"
 
-#if MIN_VERSION_template_haskell(2,4,0)
 #if MIN_VERSION_template_haskell(2,8,0)
 
   toDec (Hs.InlineConlikeSig _ act qn) = PragmaD $
@@ -480,8 +454,6 @@ instance ToDec Hs.Decl where
   -- TODO: do something with context?
   toDec (Hs.DataFamDecl _ _ n ns k)
     = FamilyD DataFam (toName n) (fmap toTyVar ns) (fmap toKind k)
-
-#endif /* MIN_VERSION_template_haskell(2,4,0) */
 
   toDec a@(Hs.FunBind mtchs)                           = hsMatchesToFunD mtchs
   toDec (Hs.PatBind _ p tM rhs bnds)                   = ValD ((maybe id
@@ -612,11 +584,7 @@ instance ToDecs Hs.Decl where
   toDecs a = [toDec a]
 
 collectVars e = case e of
-#if MIN_VERSION_template_haskell(2,4,0)
   VarT n -> [PlainTV n]
-#else /* !MIN_VERSION_template_haskell(2,4,0) */
-  VarT n -> [n]
-#endif /* !MIN_VERSION_template_haskell(2,4,0) */
   AppT t1 t2 -> nub $ collectVars t1 ++ collectVars t2
   ForallT ns _ t -> collectVars t \\ ns
   _          -> []

@@ -163,7 +163,6 @@ renameT env new (ForallT ns cxt t) =
         (t',env4,new4) = renameT env3 new3 t
     in (ForallT ns'' cxt' t', env4, new4)
   where
-#if MIN_VERSION_template_haskell(2,4,0)
     unVarT (VarT n) = PlainTV n
     renamePreds = renameThings renamePred
 
@@ -176,11 +175,6 @@ renameT env new (ForallT ns cxt t) =
         (t2', env2, new2) = renameT env1 new1 t2
       in (EqualP t1' t2', env2, new2)
 
-#else /* !MIN_VERSION_template_haskell(2,4,0) */
-    unVarT (VarT n) = n
-    renamePreds = renameTs
-
-#endif /* !MIN_VERSION_template_haskell(2,4,0) */
 
 -- | Remove qualification, etc.
 normaliseName :: Name -> Name
@@ -236,11 +230,7 @@ decCons (NewtypeD _ _ _ con _) = [con]
 decCons _ = []
 
 
-#if MIN_VERSION_template_haskell(2,4,0)
 decTyVars :: Dec -> [TyVarBndr]
-#else /* !MIN_VERSION_template_haskell(2,4,0) */
-decTyVars :: Dec -> [Name]
-#endif /* !MIN_VERSION_template_haskell(2,4,0) */
 decTyVars (DataD _ _ ns _ _) = ns
 decTyVars (NewtypeD _ _ ns _ _) = ns
 decTyVars (TySynD _ ns _) = ns
