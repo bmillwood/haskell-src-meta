@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {- |
   Module      :  Language.Haskell.Meta.Parse
   Copyright   :  (c) Matt Morrow 2008
@@ -61,7 +62,11 @@ myDefaultParseMode = ParseMode
   ,extensions = map EnableExtension myDefaultExtensions
   ,ignoreLinePragmas = False
   ,ignoreLanguagePragmas = False
+#if MIN_VERSION_template_haskell(2,7,0)
+  ,fixities = Nothing}
+#else
   ,fixities = Just baseFixities}
+#endif
 
 myDefaultExtensions :: [KnownExtension]
 myDefaultExtensions = [PostfixOperators
