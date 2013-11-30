@@ -1,5 +1,5 @@
 name:               haskell-src-meta
-version:            0.6.0.4
+version:            0.6.0.5
 cabal-version:      >= 1.6
 build-type:         Simple
 license:            BSD3
@@ -22,7 +22,7 @@ library
                    haskell-src-exts == 1.14.*,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.5,
-                   th-orphans >= 0.5 && < 0.8
+                   th-orphans >= 0.5 && < 0.9
 
   if impl(ghc >= 7.4)
     Build-depends: template-haskell >= 2.7 && < 2.10
