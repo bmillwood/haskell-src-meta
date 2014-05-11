@@ -395,6 +395,7 @@ instance ToStmt Hs.Stmt where
   toStmt (Hs.Generator _ p e)  = BindS (toPat p) (toExp e)
   toStmt (Hs.Qualifier e)      = NoBindS (toExp e)
   toStmt a@(Hs.LetStmt bnds)   = LetS (hsBindsToDecs bnds)
+  toStmt s@Hs.RecStmt{}        = noTH "toStmt" s
 
 
 -----------------------------------------------------------------------------
