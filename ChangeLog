@@ -1,3 +1,6 @@
+0.6.0.6 -> 0.6.0.7:
+- Fix compilation oops
+
 0.6.0.5 -> 0.6.0.6:
 - Move to HSE 1.15, adding support for multiway if
 
