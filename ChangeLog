@@ -1,3 +1,6 @@
+0.6.0.5 -> 0.6.0.6:
+- Move to HSE 1.15, adding support for multiway if
+
 0.6.0.4 -> 0.6.0.5:
 - Update th-orphans dependency
 
