@@ -232,7 +232,7 @@ toFieldExp (Hs.FieldUpdate n e) = (toName n, toExp e)
 
 instance ToExp Hs.Exp where
   toExp (Hs.Var n)                 = VarE (toName n)
-  toExp (Hs.IPVar n)               = noTH "toExp" e
+  toExp e@Hs.IPVar{}               = noTH "toExp" e
   toExp (Hs.Con n)                 = ConE (toName n)
   toExp (Hs.Lit l)                 = LitE (toLit l)
 #if MIN_VERSION_template_haskell(2,7,0)
