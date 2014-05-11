@@ -232,6 +232,7 @@ toFieldExp (Hs.FieldUpdate n e) = (toName n, toExp e)
 
 instance ToExp Hs.Exp where
   toExp (Hs.Var n)                 = VarE (toName n)
+  toExp (Hs.IPVar n)               = noTH "toExp" e
   toExp (Hs.Con n)                 = ConE (toName n)
   toExp (Hs.Lit l)                 = LitE (toLit l)
 #if MIN_VERSION_template_haskell(2,7,0)
@@ -239,13 +240,19 @@ instance ToExp Hs.Exp where
 #else
   toExp (Hs.InfixApp e o f)        = InfixE (Just . toExp $ e) (toExp o) (Just . toExp $ f)
 #endif
-  toExp (Hs.LeftSection e o)       = InfixE (Just . toExp $ e) (toExp o) Nothing
-  toExp (Hs.RightSection o f)      = InfixE Nothing (toExp o) (Just . toExp $ f)
   toExp (Hs.App e f)               = AppE (toExp e) (toExp f)
   toExp (Hs.NegApp e)              = AppE (VarE 'negate) (toExp e)
   toExp (Hs.Lambda _ ps e)         = LamE (fmap toPat ps) (toExp e)
   toExp (Hs.Let bs e)              = LetE (hsBindsToDecs bs) (toExp e)
   toExp (Hs.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
+#if MIN_VERSION_template_haskell(2,8,0)
+  toExp (Hs.MultiIf ifs)           = MultiIfE (map convert ifs)
+   where
+    convert (Hs.IfAlt cond e) = (NormalG (toExp cond), toExp e)
+#else
+  toExp e@Hs.MultiIf{}             = noTHyet "toExp" "2.8.0" e
+#endif
+  toExp (Hs.Case e alts)           = CaseE (toExp e) (map toMatch alts)
   toExp (Hs.Do ss)                 = DoE (map toStmt ss)
   toExp e@(Hs.MDo _)               = noTH "toExp" e
   toExp (Hs.Tuple Hs.Boxed xs)     = TupE (fmap toExp xs)
@@ -254,24 +261,26 @@ instance ToExp Hs.Exp where
 #else
   toExp e@(Hs.Tuple Hs.Unboxed _)  = noTHyet "toExp" "2.6.0" e
 #endif
+  toExp e@Hs.TupleSection{}        = noTH "toExp" e
   toExp (Hs.List xs)               = ListE (fmap toExp xs)
 #if MIN_VERSION_template_haskell(2,7,0)
   toExp (Hs.Paren e)               = ParensE (toExp e)
 #else
   toExp (Hs.Paren e)               = toExp e
 #endif
+  toExp (Hs.LeftSection e o)       = InfixE (Just . toExp $ e) (toExp o) Nothing
+  toExp (Hs.RightSection o f)      = InfixE Nothing (toExp o) (Just . toExp $ f)
   toExp (Hs.RecConstr n xs)        = RecConE (toName n) (fmap toFieldExp xs)
   toExp (Hs.RecUpdate e xs)        = RecUpdE (toExp e) (fmap toFieldExp xs)
   toExp (Hs.EnumFrom e)            = ArithSeqE $ FromR (toExp e)
   toExp (Hs.EnumFromTo e f)        = ArithSeqE $ FromToR (toExp e) (toExp f)
   toExp (Hs.EnumFromThen e f)      = ArithSeqE $ FromThenR (toExp e) (toExp f)
   toExp (Hs.EnumFromThenTo e f g)  = ArithSeqE $ FromThenToR (toExp e) (toExp f) (toExp g)
-  toExp (Hs.ExpTypeSig _ e t)      = SigE (toExp e) (toType t)
   toExp (Hs.ListComp e ss)         = CompE $ map convert ss ++ [NoBindS (toExp e)]
    where
     convert (Hs.QualStmt st) = toStmt st
     convert s = noTH "toExp ListComp" s
-  toExp (Hs.Case e alts) = CaseE (toExp e) (map toMatch alts)
+  toExp (Hs.ExpTypeSig _ e t)      = SigE (toExp e) (toType t)
   toExp e = todo "toExp" e
 
 
