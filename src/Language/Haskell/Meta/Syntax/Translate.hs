@@ -404,12 +404,6 @@ hsBindsToDecs :: Hs.Binds -> [Dec]
 hsBindsToDecs (Hs.BDecls ds) = fmap toDec ds
 hsBindsToDecs a@Hs.IPBinds{} = noTH "hsBindsToDecs" a
 
-
-hsBangTypeToStrictType :: Hs.BangType -> (Strict, Type)
-hsBangTypeToStrictType (Hs.BangedTy t)   = (IsStrict, toType t)
-hsBangTypeToStrictType (Hs.UnBangedTy t) = (NotStrict, toType t)
-
-
 instance ToDec Hs.Decl where
   toDec (Hs.TypeDecl _ n ns t)
     = TySynD (toName n) (fmap toTyVar ns) (toType t)
@@ -468,7 +462,7 @@ instance ToDec Hs.Decl where
                                                               (hsRhsToBody rhs)
                                                               (hsBindsToDecs bnds)
 
-  toDec (Hs.InstDecl _ cxt qname ts ids) = InstanceD 
+  toDec (Hs.InstDecl _ _overlap _tyVarBind cxt qname ts ids) = InstanceD 
     (toCxt cxt) 
     (foldl AppT (ConT (toName qname)) (map toType ts))
     (toDecs ids)
@@ -512,15 +506,17 @@ conDeclToCon (Hs.RecDecl n lbls)
   = RecC (toName n) (concatMap (uncurry bangToVarStrictTypes) lbls)
 
 
-bangToVarStrictTypes :: [Hs.Name] -> Hs.BangType -> [VarStrictType]
+bangToVarStrictTypes :: [Hs.Name] -> Hs.Type -> [VarStrictType]
 bangToVarStrictTypes ns t = let (a,b) = bangToStrictType t
                             in fmap (\n->(toName n,a,b)) ns
 
-bangToStrictType :: Hs.BangType -> StrictType
-bangToStrictType (Hs.BangedTy   t) = (IsStrict, toType t)
-bangToStrictType (Hs.UnBangedTy t) = (NotStrict, toType t)
-bangToStrictType (Hs.UnpackedTy t) = (IsStrict, toType t)
+bangToStrictType :: Hs.Type -> StrictType
+bangToStrictType (Hs.TyBang b t) = (bangToStrict b, toType t)
+bangToStrictType t = (NotStrict, toType t)
 
+bangToStrict :: Hs.BangType -> Strict
+bangToStrict Hs.BangedTy = IsStrict
+bangToStrict Hs.UnpackedTy = Unpacked
 
 hsMatchesToFunD :: [Hs.Match] -> Dec
 hsMatchesToFunD [] = FunD (mkName []) []   -- errorish
