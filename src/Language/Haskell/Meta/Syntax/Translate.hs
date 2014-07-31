@@ -246,9 +246,7 @@ instance ToExp Hs.Exp where
   toExp (Hs.Let bs e)              = LetE (hsBindsToDecs bs) (toExp e)
   toExp (Hs.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
 #if MIN_VERSION_template_haskell(2,8,0)
-  toExp (Hs.MultiIf ifs)           = MultiIfE (map convert ifs)
-   where
-    convert (Hs.IfAlt cond e) = (NormalG (toExp cond), toExp e)
+  toExp (Hs.MultiIf ifs)           = MultiIfE (map toGuard ifs)
 #else
   toExp e@Hs.MultiIf{}             = noTHyet "toExp" "2.8.0" e
 #endif
@@ -287,17 +285,17 @@ instance ToExp Hs.Exp where
 toMatch :: Hs.Alt -> Match
 toMatch (Hs.Alt _ p galts ds) = Match (toPat p) (toBody galts) (toDecs ds)
 
-toBody :: Hs.GuardedAlts -> Body
-toBody (Hs.UnGuardedAlt  e) = NormalB $ toExp e
-toBody (Hs.GuardedAlts alts) = GuardedB $ do
-  Hs.GuardedAlt _ stmts e <- alts
+toBody :: Hs.Rhs -> Body
+toBody (Hs.UnGuardedRhs  e) = NormalB $ toExp e
+toBody (Hs.GuardedRhss alts) = GuardedB $ do
+  Hs.GuardedRhs _ stmts e <- alts
   let
     g = case map toStmt stmts of
       [NoBindS x] -> NormalG x
       xs -> PatG xs
   return (g, toExp e)
 
-toGuard (Hs.GuardedAlt _ ([Hs.Qualifier e1]) e2) = (NormalG $ toExp e1,toExp e2)
+toGuard (Hs.GuardedRhs _ ([Hs.Qualifier e1]) e2) = (NormalG $ toExp e1,toExp e2)
 
 -----------------------------------------------------------------------------
 
@@ -406,12 +404,6 @@ hsBindsToDecs :: Hs.Binds -> [Dec]
 hsBindsToDecs (Hs.BDecls ds) = fmap toDec ds
 hsBindsToDecs a@Hs.IPBinds{} = noTH "hsBindsToDecs" a
 
-
-hsBangTypeToStrictType :: Hs.BangType -> (Strict, Type)
-hsBangTypeToStrictType (Hs.BangedTy t)   = (IsStrict, toType t)
-hsBangTypeToStrictType (Hs.UnBangedTy t) = (NotStrict, toType t)
-
-
 instance ToDec Hs.Decl where
   toDec (Hs.TypeDecl _ n ns t)
     = TySynD (toName n) (fmap toTyVar ns) (toType t)
@@ -466,13 +458,11 @@ instance ToDec Hs.Decl where
     = FamilyD DataFam (toName n) (fmap toTyVar ns) (fmap toKind k)
 
   toDec a@(Hs.FunBind mtchs)                           = hsMatchesToFunD mtchs
-  toDec (Hs.PatBind _ p tM rhs bnds)                   = ValD ((maybe id
-                                                                      (flip SigP . toType)
-                                                                      tM) (toPat p))
+  toDec (Hs.PatBind _ p    rhs bnds)                   = ValD (toPat p)
                                                               (hsRhsToBody rhs)
                                                               (hsBindsToDecs bnds)
 
-  toDec (Hs.InstDecl _ cxt qname ts ids) = InstanceD 
+  toDec (Hs.InstDecl _ _overlap _tyVarBind cxt qname ts ids) = InstanceD 
     (toCxt cxt) 
     (foldl AppT (ConT (toName qname)) (map toType ts))
     (toDecs ids)
@@ -516,15 +506,17 @@ conDeclToCon (Hs.RecDecl n lbls)
   = RecC (toName n) (concatMap (uncurry bangToVarStrictTypes) lbls)
 
 
-bangToVarStrictTypes :: [Hs.Name] -> Hs.BangType -> [VarStrictType]
+bangToVarStrictTypes :: [Hs.Name] -> Hs.Type -> [VarStrictType]
 bangToVarStrictTypes ns t = let (a,b) = bangToStrictType t
                             in fmap (\n->(toName n,a,b)) ns
 
-bangToStrictType :: Hs.BangType -> StrictType
-bangToStrictType (Hs.BangedTy   t) = (IsStrict, toType t)
-bangToStrictType (Hs.UnBangedTy t) = (NotStrict, toType t)
-bangToStrictType (Hs.UnpackedTy t) = (IsStrict, toType t)
+bangToStrictType :: Hs.Type -> StrictType
+bangToStrictType (Hs.TyBang b t) = (bangToStrict b, toType t)
+bangToStrictType t = (NotStrict, toType t)
 
+bangToStrict :: Hs.BangType -> Strict
+bangToStrict Hs.BangedTy = IsStrict
+bangToStrict Hs.UnpackedTy = Unpacked
 
 hsMatchesToFunD :: [Hs.Match] -> Dec
 hsMatchesToFunD [] = FunD (mkName []) []   -- errorish
