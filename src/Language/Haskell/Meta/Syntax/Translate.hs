@@ -171,16 +171,15 @@ instance ToLit Hs.Literal where
 instance ToPat Hs.Pat where
   toPat (Hs.PVar n)
     = VarP (toName n)
-  toPat (Hs.PLit l)
+  toPat (Hs.PLit Hs.Signless l)
     = LitP (toLit l)
-  toPat (Hs.PNeg (Hs.PLit l)) = LitP $ case toLit l of
+  toPat (Hs.PLit Hs.Negative l) = LitP $ case toLit l of
     IntegerL z -> IntegerL (negate z)
     RationalL q -> RationalL (negate q)
     IntPrimL z' -> IntPrimL (negate z')
     FloatPrimL r' -> FloatPrimL (negate r')
     DoublePrimL r'' -> DoublePrimL (negate r'')
     _ -> nonsense "toPat" "negating wrong kind of literal" l
-  toPat (Hs.PNeg p) = nonsense "toPat" "negating non-literal" p
 #if MIN_VERSION_template_haskell(2,7,0)
   toPat (Hs.PInfixApp p n q) = UInfixP (toPat p) (toName n) (toPat q)    
 #else
@@ -246,9 +245,7 @@ instance ToExp Hs.Exp where
   toExp (Hs.Let bs e)              = LetE (hsBindsToDecs bs) (toExp e)
   toExp (Hs.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
 #if MIN_VERSION_template_haskell(2,8,0)
-  toExp (Hs.MultiIf ifs)           = MultiIfE (map convert ifs)
-   where
-    convert (Hs.IfAlt cond e) = (NormalG (toExp cond), toExp e)
+  toExp (Hs.MultiIf ifs)           = MultiIfE (map toGuard ifs)
 #else
   toExp e@Hs.MultiIf{}             = noTHyet "toExp" "2.8.0" e
 #endif
@@ -285,19 +282,18 @@ instance ToExp Hs.Exp where
 
 
 toMatch :: Hs.Alt -> Match
-toMatch (Hs.Alt _ p galts ds) = Match (toPat p) (toBody galts) (toDecs ds)
+toMatch (Hs.Alt _ p rhs ds) = Match (toPat p) (toBody rhs) (toDecs ds)
 
-toBody :: Hs.GuardedAlts -> Body
-toBody (Hs.UnGuardedAlt  e) = NormalB $ toExp e
-toBody (Hs.GuardedAlts alts) = GuardedB $ do
-  Hs.GuardedAlt _ stmts e <- alts
-  let
+toBody :: Hs.Rhs -> Body
+toBody (Hs.UnGuardedRhs e) = NormalB $ toExp e
+toBody (Hs.GuardedRhss rhss) = GuardedB $ map toGuard rhss
+
+toGuard (Hs.GuardedRhs _ stmts e) = (g, toExp e)
+  where
     g = case map toStmt stmts of
       [NoBindS x] -> NormalG x
       xs -> PatG xs
-  return (g, toExp e)
 
-toGuard (Hs.GuardedAlt _ ([Hs.Qualifier e1]) e2) = (NormalG $ toExp e1,toExp e2)
 
 -----------------------------------------------------------------------------
 
@@ -360,7 +356,7 @@ instance ToType Hs.Type where
 #if MIN_VERSION_template_haskell(2,6,0)
       Hs.Unboxed -> UnboxedTupleT
 #else
-      Hs.Unboxed -> noTHyet "toType TyTuple" "2.6.0" (Hs.TyTuple b ts)
+      Hs.Unboxed -> noTHyet "toType" "2.6.0" (Hs.TyTuple b ts)
 #endif
   toType (Hs.TyApp a b) = AppT (toType a) (toType b)
   toType (Hs.TyVar n) = VarT (toName n)
@@ -369,7 +365,16 @@ instance ToType Hs.Type where
   -- XXX: need to wrap the name in parens!
   toType (Hs.TyInfix a o b) = AppT (AppT (ConT (toName o)) (toType a)) (toType b)
   toType (Hs.TyKind t k) = SigT (toType t) (toKind k)
+  toType t@Hs.TyBang{} =
+    nonsense "toType" "type cannot have strictness annotations in this context" t
 
+
+toStrictType :: Hs.Type -> StrictType
+toStrictType t@(Hs.TyBang _ Hs.TyBang{}) =
+  nonsense "toStrictType" "double strictness annotation" t
+toStrictType (Hs.TyBang Hs.BangedTy t) = (IsStrict, toType t)
+toStrictType (Hs.TyBang Hs.UnpackedTy t) = (Unpacked, toType t)
+toStrictType t = (NotStrict, toType t)
 
 
 
@@ -405,11 +410,6 @@ instance ToStmt Hs.Stmt where
 hsBindsToDecs :: Hs.Binds -> [Dec]
 hsBindsToDecs (Hs.BDecls ds) = fmap toDec ds
 hsBindsToDecs a@Hs.IPBinds{} = noTH "hsBindsToDecs" a
-
-
-hsBangTypeToStrictType :: Hs.BangType -> (Strict, Type)
-hsBangTypeToStrictType (Hs.BangedTy t)   = (IsStrict, toType t)
-hsBangTypeToStrictType (Hs.UnBangedTy t) = (NotStrict, toType t)
 
 
 instance ToDec Hs.Decl where
@@ -466,13 +466,17 @@ instance ToDec Hs.Decl where
     = FamilyD DataFam (toName n) (fmap toTyVar ns) (fmap toKind k)
 
   toDec a@(Hs.FunBind mtchs)                           = hsMatchesToFunD mtchs
-  toDec (Hs.PatBind _ p tM rhs bnds)                   = ValD ((maybe id
-                                                                      (flip SigP . toType)
-                                                                      tM) (toPat p))
+  toDec (Hs.PatBind _ p rhs bnds)                      = ValD (toPat p)
                                                               (hsRhsToBody rhs)
                                                               (hsBindsToDecs bnds)
 
-  toDec (Hs.InstDecl _ cxt qname ts ids) = InstanceD 
+  toDec i@(Hs.InstDecl _ (Just overlap) _ _ _ _ _) =
+    noTH "toDec" (overlap, i)
+
+  -- the 'vars' bit seems to be for: instance forall a. C (T a) where ...
+  -- TH's own parser seems to flat-out ignore them, and honestly I can't see
+  -- that it's obviously wrong to do so.
+  toDec (Hs.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD 
     (toCxt cxt) 
     (foldl AppT (ConT (toName qname)) (map toType ts))
     (toDecs ids)
@@ -511,19 +515,13 @@ qualConDeclToCon (Hs.QualConDecl _ ns cxt cdecl) = ForallC (fmap toTyVar ns)
                                                     (conDeclToCon cdecl)
 conDeclToCon :: Hs.ConDecl -> Con
 conDeclToCon (Hs.ConDecl n tys)
-  = NormalC (toName n) (fmap bangToStrictType tys)
-conDeclToCon (Hs.RecDecl n lbls)
-  = RecC (toName n) (concatMap (uncurry bangToVarStrictTypes) lbls)
-
-
-bangToVarStrictTypes :: [Hs.Name] -> Hs.BangType -> [VarStrictType]
-bangToVarStrictTypes ns t = let (a,b) = bangToStrictType t
-                            in fmap (\n->(toName n,a,b)) ns
-
-bangToStrictType :: Hs.BangType -> StrictType
-bangToStrictType (Hs.BangedTy   t) = (IsStrict, toType t)
-bangToStrictType (Hs.UnBangedTy t) = (NotStrict, toType t)
-bangToStrictType (Hs.UnpackedTy t) = (IsStrict, toType t)
+  = NormalC (toName n) (map toStrictType tys)
+conDeclToCon (Hs.RecDecl n fieldDecls)
+  = RecC (toName n) (concatMap convField fieldDecls)
+  where
+    convField (fields, t) =
+      let (strict, ty) = toStrictType t
+      in map (\field -> (toName field, strict, ty)) fields
 
 
 hsMatchesToFunD :: [Hs.Match] -> Dec
