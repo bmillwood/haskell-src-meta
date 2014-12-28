@@ -166,6 +166,9 @@ renameT env new (ForallT ns cxt t) =
     unVarT (VarT n) = PlainTV n
     renamePreds = renameThings renamePred
 
+#if MIN_VERSION_template_haskell(2,10,0)
+    renamePred = renameT
+#else
     renamePred env new (ClassP n ts) = let
         (ts', env', new') = renameTs env new [] ts
       in (ClassP (normaliseName n) ts', env', new')
@@ -174,7 +177,7 @@ renameT env new (ForallT ns cxt t) =
         (t1', env1, new1) = renameT env new t1
         (t2', env2, new2) = renameT env1 new1 t2
       in (EqualP t1' t2', env2, new2)
-
+#endif
 
 -- | Remove qualification, etc.
 normaliseName :: Name -> Name
