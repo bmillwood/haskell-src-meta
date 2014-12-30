@@ -384,9 +384,15 @@ a .->. b = AppT (AppT ArrowT a) b
 toCxt :: Hs.Context -> Cxt
 toCxt = fmap toPred
  where
+#if MIN_VERSION_template_haskell(2,10,0)
+  toPred (Hs.ClassA n ts) = foldl' AppT (ConT (toName n)) (fmap toType ts)
+  toPred (Hs.InfixA t1 n t2) = foldl' AppT (ConT (toName n)) (fmap toType [t1,t2])
+  toPred (Hs.EqualP t1 t2) = foldl' AppT EqualityT (fmap toType [t1,t2])
+#else
   toPred (Hs.ClassA n ts) = ClassP (toName n) (fmap toType ts)
   toPred (Hs.InfixA t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
   toPred (Hs.EqualP t1 t2) = EqualP (toType t1) (toType t2)
+#endif
   toPred a@Hs.IParam{} = noTH "toCxt" a
 
 foldAppT :: Type -> [Type] -> Type
