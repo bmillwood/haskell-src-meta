@@ -22,7 +22,7 @@ library
                    haskell-src-exts == 1.16.*,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.5,
-                   th-orphans >= 0.5 && < 0.9
+                   th-orphans >= 0.5 && < 0.10
 
   if impl(ghc >= 7.4)
     Build-depends: template-haskell >= 2.7 && < 2.11
