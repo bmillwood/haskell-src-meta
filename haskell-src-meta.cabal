@@ -9,7 +9,6 @@ author:             Matt Morrow
 copyright:          (c) Matt Morrow
 maintainer:         Ben Millwood <haskell@benmachine.co.uk>
 bug-reports:        https://github.com/bmillwood/haskell-src-meta/issues
-stability:          experimental
 tested-with:        GHC == 7.0.4, GHC == 7.2.2, GHC == 7.4.2, GHC == 7.6.2
 synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
