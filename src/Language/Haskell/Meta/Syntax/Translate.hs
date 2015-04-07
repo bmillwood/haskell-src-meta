@@ -180,24 +180,12 @@ instance ToPat Hs.Pat where
     FloatPrimL r' -> FloatPrimL (negate r')
     DoublePrimL r'' -> DoublePrimL (negate r'')
     _ -> nonsense "toPat" "negating wrong kind of literal" l
-#if MIN_VERSION_template_haskell(2,7,0)
   toPat (Hs.PInfixApp p n q) = UInfixP (toPat p) (toName n) (toPat q)    
-#else
-  toPat (Hs.PInfixApp p n q)= InfixP (toPat p) (toName n) (toPat q)
-#endif
   toPat (Hs.PApp n ps) = ConP (toName n) (fmap toPat ps)
   toPat (Hs.PTuple Hs.Boxed ps) = TupP (fmap toPat ps)
-#if MIN_VERSION_template_haskell(2,6,0)
   toPat (Hs.PTuple Hs.Unboxed ps) = UnboxedTupP (fmap toPat ps)
-#else
-  toPat p@(Hs.PTuple Hs.Unboxed _) = noTHyet "toPat" "2.6.0" p
-#endif
   toPat (Hs.PList ps) = ListP (fmap toPat ps)
-#if MIN_VERSION_template_haskell(2,7,0)  
   toPat (Hs.PParen p) = ParensP (toPat p)  
-#else
-  toPat (Hs.PParen p) = toPat p
-#endif
   toPat (Hs.PRec n pfs) = let toFieldPat (Hs.PFieldPat n p) = (toName n, toPat p)
                           in RecP (toName n) (fmap toFieldPat pfs)
   toPat (Hs.PAsPat n p) = AsP (toName n) (toPat p)
@@ -234,11 +222,7 @@ instance ToExp Hs.Exp where
   toExp e@Hs.IPVar{}               = noTH "toExp" e
   toExp (Hs.Con n)                 = ConE (toName n)
   toExp (Hs.Lit l)                 = LitE (toLit l)
-#if MIN_VERSION_template_haskell(2,7,0)
   toExp (Hs.InfixApp e o f)        = UInfixE (toExp e) (toExp o) (toExp f)
-#else
-  toExp (Hs.InfixApp e o f)        = InfixE (Just . toExp $ e) (toExp o) (Just . toExp $ f)
-#endif
   toExp (Hs.App e f)               = AppE (toExp e) (toExp f)
   toExp (Hs.NegApp e)              = AppE (VarE 'negate) (toExp e)
   toExp (Hs.Lambda _ ps e)         = LamE (fmap toPat ps) (toExp e)
@@ -253,18 +237,10 @@ instance ToExp Hs.Exp where
   toExp (Hs.Do ss)                 = DoE (map toStmt ss)
   toExp e@(Hs.MDo _)               = noTH "toExp" e
   toExp (Hs.Tuple Hs.Boxed xs)     = TupE (fmap toExp xs)
-#if MIN_VERSION_template_haskell(2,6,0)
   toExp (Hs.Tuple Hs.Unboxed xs)   = UnboxedTupE (fmap toExp xs)
-#else
-  toExp e@(Hs.Tuple Hs.Unboxed _)  = noTHyet "toExp" "2.6.0" e
-#endif
   toExp e@Hs.TupleSection{}        = noTH "toExp" e
   toExp (Hs.List xs)               = ListE (fmap toExp xs)
-#if MIN_VERSION_template_haskell(2,7,0)
   toExp (Hs.Paren e)               = ParensE (toExp e)
-#else
-  toExp (Hs.Paren e)               = toExp e
-#endif
   toExp (Hs.LeftSection e o)       = InfixE (Just . toExp $ e) (toExp o) Nothing
   toExp (Hs.RightSection o f)      = InfixE Nothing (toExp o) (Just . toExp $ f)
   toExp (Hs.RecConstr n xs)        = RecConE (toName n) (fmap toFieldExp xs)
@@ -353,11 +329,7 @@ instance ToType Hs.Type where
    where
     tuple = case b of
       Hs.Boxed -> TupleT
-#if MIN_VERSION_template_haskell(2,6,0)
       Hs.Unboxed -> UnboxedTupleT
-#else
-      Hs.Unboxed -> noTHyet "toType" "2.6.0" (Hs.TyTuple b ts)
-#endif
   toType (Hs.TyApp a b) = AppT (toType a) (toType b)
   toType (Hs.TyVar n) = VarT (toName n)
   toType (Hs.TyCon qn) = ConT (toName qn)

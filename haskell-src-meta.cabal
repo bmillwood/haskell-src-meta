@@ -9,7 +9,8 @@ author:             Matt Morrow
 copyright:          (c) Matt Morrow
 maintainer:         Ben Millwood <haskell@benmachine.co.uk>
 bug-reports:        https://github.com/bmillwood/haskell-src-meta/issues
-tested-with:        GHC == 7.0.4, GHC == 7.2.2, GHC == 7.4.2, GHC == 7.6.2
+-- That is to say, "builds with". It's not like we have a testsuite.
+tested-with:        GHC == 7.4.2, GHC == 7.6.2, GHC == 7.8.2, GHC == 7.10.1
 synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
                     to template-haskell abstract syntax isn't 100% complete yet.
@@ -17,17 +18,13 @@ description:        The translation from haskell-src-exts abstract syntax
 extra-source-files: ChangeLog README examples/*.hs
 
 library
-  build-depends:   base >= 4.2 && < 4.9,
+  build-depends:   base >= 4.5 && < 4.9,
                    haskell-src-exts == 1.16.*,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.5,
                    th-orphans >= 0.9.1 && < 0.12
 
-  if impl(ghc >= 7.4)
-    Build-depends: template-haskell >= 2.7 && < 2.11
-  else
-    Build-depends: template-haskell >= 2.4 && < 2.7,
-                   uniplate >= 1.3 && < 1.7
+  Build-depends: template-haskell >= 2.7 && < 2.11
 
   extensions:      CPP,
                    RankNTypes,

@@ -1,4 +1,6 @@
 {- |
+DEPRECATED: haskell-src-meta now requires GHC >= 7.4, so this module is no longer necessary. It will be GHC-warning deprecated soon.
+
 This module provides the tools to handle operator fixities in infix expressions correctly.
 
 The problem we solve is the following. Consider making a quasiquoter which antiquotes to Haskell - for instance, the quasiquoter in <http://hackage.haskell.org/package/hmatrix-static> allows me to write
@@ -34,9 +36,6 @@ import qualified Language.Haskell.Meta.Parse as Sloppy
 import qualified Language.Haskell.Meta.Syntax.Translate as Translate
 import qualified Language.Haskell.TH as TH
 import qualified Language.Haskell.Exts.Syntax as Hs
-#if !(MIN_VERSION_template_haskell(2,7,0))
-import Data.Generics.Uniplate.Data
-#endif
 
 doChecked parser translater p = 
   case parser p of 
@@ -56,18 +55,6 @@ parseType = doChecked Sloppy.parseHsType Translate.toType
 parseDecs :: String -> Either String [TH.Dec]
 parseDecs = doChecked Sloppy.parseHsDecls Translate.toDecs
 
-#if MIN_VERSION_template_haskell(2,7,0)
+-- This was more complicated, but since support for GHC pre-7.4 was dropped,
+-- it's no longer necessary
 amb = const False
-#else
-amb syn = any isAmbExp (universeBi syn) || any isAmbPat (universeBi syn)
-  where
-    isAmbExp (Hs.InfixApp Hs.InfixApp{} _ _) = True
-    isAmbExp (Hs.InfixApp _ _ Hs.InfixApp{}) = True
-    isAmbExp (Hs.InfixApp Hs.RightSection{} _ _) = True
-    isAmbExp (Hs.InfixApp _ _ Hs.LeftSection{}) = True
-    isAmbExp _ = False
-    
-    isAmbPat (Hs.PInfixApp Hs.PInfixApp{} _ _) = True
-    isAmbPat (Hs.PInfixApp _ _ Hs.PInfixApp{}) = True
-    isAmbPat _ = False
-#endif
