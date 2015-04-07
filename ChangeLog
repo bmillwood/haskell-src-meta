@@ -1,3 +1,9 @@
+0.6.0.8 -> 0.6.0.9:
+- Compatibility with GHC 7.10
+- Update th-orphans dependency
+- Drop GHC < 7.4 support (actually it was already broken, since HSE 1.16
+  requires base >= 4.5)
+
 0.6.0.7 -> 0.6.0.8:
 - Move to HSE 1.16
 
