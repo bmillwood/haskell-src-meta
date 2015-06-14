@@ -21,7 +21,7 @@ library
   build-depends:   base >= 4.5 && < 4.9,
                    haskell-src-exts == 1.16.*,
                    pretty >= 1.0 && < 1.2,
-                   syb >= 0.1 && < 0.5,
+                   syb >= 0.1 && < 0.6,
                    th-orphans >= 0.9.1 && < 0.13
 
   Build-depends: template-haskell >= 2.7 && < 2.11
