@@ -300,7 +300,6 @@ instance ToType Hs.Kind where
   toType Hs.KindStar = StarT
   toType (Hs.KindFn k1 k2) = toType k1 .->. toType k2
   toType (Hs.KindParen kp) = toType kp
-  toType k@Hs.KindBang = noTH "toKind" k
   toType (Hs.KindVar n) = VarT (toName n)
 
 toKind :: Hs.Kind -> Kind
