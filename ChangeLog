@@ -1,36 +1,50 @@
-0.6.0.8 -> 0.6.0.9:
+0.6.0.13:
+- Compatibility with GHC HEAD, haskell-src-exts 1.17
+- Remove hsBindsToDecs, since it was redundant with toDecs. Technically this 
+  requires a minor-version bump, but I doubt anyone was using it.
+
+0.6.0.12:
+- Support th-orphans 0.13
+
+0.6.0.11:
+- Support syb 0.6
+
+0.6.0.10:
+- Support syb 0.5, th-orphans 0.12
+
+0.6.0.9:
 - Compatibility with GHC 7.10
 - Update th-orphans dependency
 - Drop GHC < 7.4 support (actually it was already broken, since HSE 1.16
   requires base >= 4.5)
 
-0.6.0.7 -> 0.6.0.8:
+0.6.0.8:
 - Move to HSE 1.16
 
-0.6.0.6 -> 0.6.0.7:
+0.6.0.7:
 - Fix compilation oops
 
-0.6.0.5 -> 0.6.0.6:
+0.6.0.6:
 - Move to HSE 1.15, adding support for multiway if
 
-0.6.0.4 -> 0.6.0.5:
+0.6.0.5:
 - Update th-orphans dependency
 
-0.6.0.3 -> 0.6.0.4:
+0.6.0.4:
 - Drop support for GHC 6.12
 - Move to HSE 1.14
 
-0.6.0.2 -> 0.6.0.3:
+0.6.0.3:
 - Update th-orphans dependency
 - Some dependency loosening in anticipation of GHC 7.8
 
-0.6.0.1 -> 0.6.0.2:
+0.6.0.2:
 - Update syb dependency
 
-0.6 -> 0.6.0.1:
+0.6.0.1:
 - Fix haddock parse error
 
-0.5.1.2 -> 0.6:
+0.6:
 - Cabal category Template Haskell
 - Partial support for list comprehensions
 - Support for type and data families and class decs
@@ -44,36 +58,36 @@
 - Compatibility with GHC 7.6.1, bringing support for kind variables
   and infix declarations
 
-0.5.1.1 -> 0.5.1.2:
+0.5.1.2:
 - More sensible determination of TH version available
 
-0.5.1 -> 0.5.1.1:
+0.5.1.1:
 - View pattern support, thanks to Nicolas Frisby.
 
-0.5.0.3 -> 0.5.1:
+0.5.1:
 - New module Language.Haskell.Meta.Parse.Careful, written by Reiner Pope
   so that ambiguous parses can be rejected instead of quietly done wrong.
 
-0.5.0.2 -> 0.5.0.3:
+0.5.0.3:
 - Support for GHC 7.4, thanks to Reiner Pope
 - Support for unresolved infix expressions, again thanks to Reiner Pope
 
-0.5.0.1 -> 0.5.0.2:
+0.5.0.2:
 - Fixed bug in translation of tuple constructors
 
-0.5 -> 0.5.0.1:
+0.5.0.1:
 - Added support for primitive string literals (Only in TH >= 2.5)
 
-0.4.0.2 -> 0.5:
+0.5:
 - Added support for instance declarations
 
-0.4.0.1 -> 0.4.0.2:
+0.4.0.2:
 - Compatibility with GHC 7.2
 
-0.4 -> 0.4.0.1:
+0.4.0.1:
 - Deprecate myDefaultParseMode and myDefaultExtensions in L.H.M.Parse
 
-0.3 -> 0.4:
+0.4:
 - Remove Language.Haskell.Meta.Syntax.Vars and the L.H.M.Syntax re-export module
 - Remove dependency on containers
 - Add support for let statements in (pattern) guards
@@ -81,22 +95,22 @@
 - Remove "support" for SpliceExps that didn't really make sense
 - Improve many error messages where things are unimplemented or impossible
 
-0.2 -> 0.3:
+0.3:
 - Fixes/additions to inline pragma support (Jonas Duregard)
 - Compatibility with GHC 7 and TH 2.5 - totalling three major versions!
 - Move some of the quasiquoters to their own package, and stop exporting
   the rest (they are kept as examples of usage)
 
-0.1.1 -> 0.2:
+0.2:
 - Compatibility with GHC 6.10 and TH 2.3 (Geoffrey Mainland)
 - Add support for do-blocks, pattern guards (Adam Vogt)
 - Add applicative-do quasiquoter (Adam Vogt)
 
-0.1.0 -> 0.1.1:
+0.1.1:
 - Add support for inline pragmas, and improve support for type
   signatures (patch by Jonas Duregard)
 
-0.0.6 -> 0.1.0:
+0.1.0:
 - Used the th-lift library to autogenerate the instances of Lift in
   Language.Haskell.TH.Instances.Lift
 - Added support for the new features of template-haskell-2.4.0.0:
@@ -104,3 +118,6 @@
 - Updated use of haskell-src-exts in response to API changes.
 - Added ToDecs class because some HSE Decls don't map to a single Dec.
   (patch by Jonas Duregard)
+
+0.0.6:
+- last version released by Matt Morrow before his disappearance
