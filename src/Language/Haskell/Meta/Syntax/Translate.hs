@@ -16,6 +16,7 @@ module Language.Haskell.Meta.Syntax.Translate (
 import Data.Char (ord)
 import Data.Typeable
 import Data.List (foldl', nub, (\\))
+import Data.Maybe (fromMaybe)
 import Language.Haskell.TH.Syntax
 import qualified Language.Haskell.Exts.Syntax as Hs
 
@@ -180,12 +181,12 @@ instance ToPat Hs.Pat where
     FloatPrimL r' -> FloatPrimL (negate r')
     DoublePrimL r'' -> DoublePrimL (negate r'')
     _ -> nonsense "toPat" "negating wrong kind of literal" l
-  toPat (Hs.PInfixApp p n q) = UInfixP (toPat p) (toName n) (toPat q)    
+  toPat (Hs.PInfixApp p n q) = UInfixP (toPat p) (toName n) (toPat q)
   toPat (Hs.PApp n ps) = ConP (toName n) (fmap toPat ps)
   toPat (Hs.PTuple Hs.Boxed ps) = TupP (fmap toPat ps)
   toPat (Hs.PTuple Hs.Unboxed ps) = UnboxedTupP (fmap toPat ps)
   toPat (Hs.PList ps) = ListP (fmap toPat ps)
-  toPat (Hs.PParen p) = ParensP (toPat p)  
+  toPat (Hs.PParen p) = ParensP (toPat p)
   toPat (Hs.PRec n pfs) = let toFieldPat (Hs.PFieldPat n p) = (toName n, toPat p)
                           in RecP (toName n) (fmap toFieldPat pfs)
   toPat (Hs.PAsPat n p) = AsP (toName n) (toPat p)
@@ -258,7 +259,7 @@ instance ToExp Hs.Exp where
 
 
 toMatch :: Hs.Alt -> Match
-toMatch (Hs.Alt _ p rhs ds) = Match (toPat p) (toBody rhs) (toDecs ds)
+toMatch (Hs.Alt _ p rhs ds) = Match (toPat p) (toBody rhs) (toDecs $ fromMaybe (Hs.BDecls []) ds)
 
 toBody :: Hs.Rhs -> Body
 toBody (Hs.UnGuardedRhs e) = NormalB $ toExp e
@@ -300,7 +301,6 @@ instance ToType Hs.Kind where
   toType Hs.KindStar = StarT
   toType (Hs.KindFn k1 k2) = toType k1 .->. toType k2
   toType (Hs.KindParen kp) = toType kp
-  toType k@Hs.KindBang = noTH "toKind" k
   toType (Hs.KindVar n) = VarT (toName n)
 
 toKind :: Hs.Kind -> Kind
@@ -312,7 +312,6 @@ toKind :: Hs.Kind -> Kind
 toKind Hs.KindStar = StarK
 toKind (Hs.KindFn k1 k2) = ArrowK (toKind k1) (toKind k2)
 toKind (Hs.KindParen kp) = toKind kp
-toKind k@Hs.KindBang = noTH "toKind" k
 toKind k@Hs.KindVar{} = noTHyet "toKind" "2.8.0" k
 
 #endif /* !MIN_VERSION_template_haskell(2,8,0) */
@@ -411,7 +410,7 @@ instance ToDec Hs.Decl where
                                     (qualConDeclToCon qcd)
                                     (fmap (toName . fst) qns)
 
-  -- This type-signature conversion is just wrong. 
+  -- This type-signature conversion is just wrong.
   -- Type variables need to be dealt with. /Jonas
   toDec a@(Hs.TypeSig _ ns t)
     -- XXXXXXXXXXXXXX: oh crap, we can't return a [Dec] from this class!
@@ -429,9 +428,9 @@ instance ToDec Hs.Decl where
 
 #else
 
-  toDec (Hs.InlineConlikeSig _ act id)                 = PragmaD $ 
+  toDec (Hs.InlineConlikeSig _ act id)                 = PragmaD $
     InlineP (toName id) (InlineSpec True True $ transAct act)
-  toDec (Hs.InlineSig _ b act id)                      = PragmaD $ 
+  toDec (Hs.InlineSig _ b act id)                      = PragmaD $
     InlineP (toName id) (InlineSpec b False $ transAct act)
 
 #endif /* MIN_VERSION_template_haskell(2,8,0) */
@@ -444,9 +443,10 @@ instance ToDec Hs.Decl where
     = FamilyD DataFam (toName n) (fmap toTyVar ns) (fmap toKind k)
 
   toDec a@(Hs.FunBind mtchs)                           = hsMatchesToFunD mtchs
-  toDec (Hs.PatBind _ p rhs bnds)                      = ValD (toPat p)
-                                                              (hsRhsToBody rhs)
-                                                              (hsBindsToDecs bnds)
+  toDec (Hs.PatBind _ p rhs bnds)                      =
+    ValD (toPat p)
+         (hsRhsToBody rhs)
+         (hsBindsToDecs $ fromMaybe (Hs.BDecls []) bnds)
 
   toDec i@(Hs.InstDecl _ (Just overlap) _ _ _ _ _) =
     noTH "toDec" (overlap, i)
@@ -454,8 +454,8 @@ instance ToDec Hs.Decl where
   -- the 'vars' bit seems to be for: instance forall a. C (T a) where ...
   -- TH's own parser seems to flat-out ignore them, and honestly I can't see
   -- that it's obviously wrong to do so.
-  toDec (Hs.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD 
-    (toCxt cxt) 
+  toDec (Hs.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD
+    (toCxt cxt)
     (foldl AppT (ConT (toName qname)) (map toType ts))
     (toDecs ids)
 
@@ -508,10 +508,10 @@ hsMatchesToFunD xs@(Hs.Match _ n _ _ _ _:_) = FunD (toName n) (fmap hsMatchToCla
 
 
 hsMatchToClause :: Hs.Match -> Clause
-hsMatchToClause (Hs.Match _ _ ps _ rhs bnds) = Clause
-                                                (fmap toPat ps)
-                                                (hsRhsToBody rhs)
-                                                (hsBindsToDecs bnds)
+hsMatchToClause (Hs.Match _ _ ps _ rhs bnds) =
+  Clause (fmap toPat ps)
+         (hsRhsToBody rhs)
+         (hsBindsToDecs (fromMaybe (Hs.BDecls []) bnds))
 
 
 

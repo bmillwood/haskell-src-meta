@@ -62,7 +62,8 @@ myDefaultParseMode = ParseMode
   ,extensions = map EnableExtension myDefaultExtensions
   ,ignoreLinePragmas = False
   ,ignoreLanguagePragmas = False
-  ,fixities = Nothing}
+  ,fixities = Nothing
+  ,ignoreFunctionArity = False}
 
 myDefaultExtensions :: [KnownExtension]
 myDefaultExtensions = [PostfixOperators
