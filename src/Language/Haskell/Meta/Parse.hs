@@ -62,7 +62,11 @@ myDefaultParseMode = ParseMode
   ,extensions = map EnableExtension myDefaultExtensions
   ,ignoreLinePragmas = False
   ,ignoreLanguagePragmas = False
-  ,fixities = Nothing}
+  ,fixities = Nothing
+#if MIN_VERSION_haskell_src_exts(1,17,0)
+  ,ignoreFunctionArity = False
+#endif
+  }
 
 myDefaultExtensions :: [KnownExtension]
 myDefaultExtensions = [PostfixOperators

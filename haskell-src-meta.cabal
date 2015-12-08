@@ -19,12 +19,19 @@ extra-source-files: ChangeLog README examples/*.hs
 
 library
   build-depends:   base >= 4.5 && < 4.9,
-                   haskell-src-exts == 1.16.*,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.7,
+                   template-haskell >= 2.7 && < 2.11,
                    th-orphans >= 0.9.1 && < 0.14
 
-  Build-depends: template-haskell >= 2.7 && < 2.11
+  -- haskell-src-exts 1.17 is not compatible with versions of GHC prior to 7.8,
+  -- but we still maintain compatibility back to GHC 7.4.
+  if impl(ghc >= 7.8)
+    build-depends:
+      haskell-src-exts >= 1.16 && < 1.18
+  else               
+    build-depends:
+      haskell-src-exts == 1.16.*
 
   extensions:      CPP,
                    RankNTypes,

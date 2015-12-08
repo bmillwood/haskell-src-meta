@@ -300,7 +300,9 @@ instance ToType Hs.Kind where
   toType Hs.KindStar = StarT
   toType (Hs.KindFn k1 k2) = toType k1 .->. toType k2
   toType (Hs.KindParen kp) = toType kp
+#if !MIN_VERSION_haskell_src_exts(1,17,0)
   toType k@Hs.KindBang = noTH "toKind" k
+#endif                         
   toType (Hs.KindVar n) = VarT (toName n)
 
 toKind :: Hs.Kind -> Kind
@@ -581,6 +583,10 @@ instance ToDecs a => ToDecs [a] where
 instance ToDecs Hs.Binds where
   toDecs (Hs.BDecls ds)   = toDecs ds
   toDecs a@(Hs.IPBinds {}) = noTH "ToDecs Hs.Binds" a
+
+instance ToDecs (Maybe Hs.Binds) where
+  toDecs Nothing               = []
+  toDecs (Just (Hs.BDecls ds)) = toDecs ds
 
 
 -----------------------------------------------------------------------------
