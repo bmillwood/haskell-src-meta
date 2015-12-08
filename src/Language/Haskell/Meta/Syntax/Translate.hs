@@ -226,7 +226,7 @@ instance ToExp Hs.Exp where
   toExp (Hs.App e f)               = AppE (toExp e) (toExp f)
   toExp (Hs.NegApp e)              = AppE (VarE 'negate) (toExp e)
   toExp (Hs.Lambda _ ps e)         = LamE (fmap toPat ps) (toExp e)
-  toExp (Hs.Let bs e)              = LetE (hsBindsToDecs bs) (toExp e)
+  toExp (Hs.Let bs e)              = LetE (toDecs bs) (toExp e)
   toExp (Hs.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
 #if MIN_VERSION_template_haskell(2,8,0)
   toExp (Hs.MultiIf ifs)           = MultiIfE (map toGuard ifs)
@@ -377,18 +377,13 @@ foldAppT t ts = foldl' AppT t ts
 instance ToStmt Hs.Stmt where
   toStmt (Hs.Generator _ p e)  = BindS (toPat p) (toExp e)
   toStmt (Hs.Qualifier e)      = NoBindS (toExp e)
-  toStmt a@(Hs.LetStmt bnds)   = LetS (hsBindsToDecs bnds)
+  toStmt a@(Hs.LetStmt bnds)   = LetS (toDecs bnds)
   toStmt s@Hs.RecStmt{}        = noTH "toStmt" s
 
 
 -----------------------------------------------------------------------------
 
 -- * ToDec HsDecl
-
-hsBindsToDecs :: Hs.Binds -> [Dec]
-hsBindsToDecs (Hs.BDecls ds) = fmap toDec ds
-hsBindsToDecs a@Hs.IPBinds{} = noTH "hsBindsToDecs" a
-
 
 instance ToDec Hs.Decl where
   toDec (Hs.TypeDecl _ n ns t)
@@ -446,7 +441,7 @@ instance ToDec Hs.Decl where
   toDec a@(Hs.FunBind mtchs)                           = hsMatchesToFunD mtchs
   toDec (Hs.PatBind _ p rhs bnds)                      = ValD (toPat p)
                                                               (hsRhsToBody rhs)
-                                                              (hsBindsToDecs bnds)
+                                                              (toDecs bnds)
 
   toDec i@(Hs.InstDecl _ (Just overlap) _ _ _ _ _) =
     noTH "toDec" (overlap, i)
@@ -511,7 +506,7 @@ hsMatchToClause :: Hs.Match -> Clause
 hsMatchToClause (Hs.Match _ _ ps _ rhs bnds) = Clause
                                                 (fmap toPat ps)
                                                 (hsRhsToBody rhs)
-                                                (hsBindsToDecs bnds)
+                                                (toDecs bnds)
 
 
 
@@ -540,7 +535,7 @@ hsGuardedRhsToBody (Hs.GuardedRhs _ ss e)  = let ss' = fmap hsStmtToGuard ss
 hsStmtToGuard :: Hs.Stmt -> Guard
 hsStmtToGuard (Hs.Generator _ p e) = PatG [BindS (toPat p) (toExp e)]
 hsStmtToGuard (Hs.Qualifier e)     = NormalG (toExp e)
-hsStmtToGuard (Hs.LetStmt bs)      = PatG [LetS (hsBindsToDecs bs)]
+hsStmtToGuard (Hs.LetStmt bs)      = PatG [LetS (toDecs bs)]
 
 
 -----------------------------------------------------------------------------
@@ -584,7 +579,8 @@ instance ToDecs a => ToDecs [a] where
   toDecs a = concatMap toDecs a
 
 instance ToDecs Hs.Binds where
-  toDecs (Hs.BDecls ds) = toDecs ds
+  toDecs (Hs.BDecls ds)   = toDecs ds
+  toDecs a@(Hs.IPBinds {}) = noTH "ToDecs Hs.Binds" a
 
 
 -----------------------------------------------------------------------------
