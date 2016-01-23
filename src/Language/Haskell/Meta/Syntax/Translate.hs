@@ -13,11 +13,12 @@ module Language.Haskell.Meta.Syntax.Translate (
     module Language.Haskell.Meta.Syntax.Translate
 ) where
 
-import Data.Char (ord)
+import Data.Char (ord, isUpper)
 import Data.Typeable
 import Data.List (foldl', nub, (\\))
 import Language.Haskell.TH.Syntax
 import qualified Language.Haskell.Exts.Syntax as Hs
+
 
 -----------------------------------------------------------------------------
 
@@ -302,8 +303,19 @@ instance ToType Hs.Kind where
   toType (Hs.KindParen kp) = toType kp
 #if !MIN_VERSION_haskell_src_exts(1,17,0)
   toType k@Hs.KindBang = noTH "toKind" k
-#endif                         
-  toType (Hs.KindVar n) = VarT (toName n)
+#endif
+  toType (Hs.KindVar n)
+      | isCon (nameBase th_n) = ConT th_n
+      | otherwise             = VarT th_n
+    where
+      th_n = toName n
+
+      isCon :: String -> Bool
+      isCon (c:_) = isUpper c || c == ':'
+      isCon _ = nonsense "toType" "empty kind variable name" n
+  toType (Hs.KindApp k1 k2) = toType k1 `AppT` toType k2
+  toType (Hs.KindTuple ks) = foldr (\k pt -> pt `AppT` toType k) (TupleT $ length ks) ks
+  toType (Hs.KindList k) = ListT `AppT` toType k
 
 toKind :: Hs.Kind -> Kind
 toKind = toType
@@ -339,8 +351,19 @@ instance ToType Hs.Type where
   -- XXX: need to wrap the name in parens!
   toType (Hs.TyInfix a o b) = AppT (AppT (ConT (toName o)) (toType a)) (toType b)
   toType (Hs.TyKind t k) = SigT (toType t) (toKind k)
+  toType (Hs.TyPromoted p) =
+      case p of
+        Hs.PromotedInteger i -> LitT $ NumTyLit i
+        Hs.PromotedString s -> LitT $ StrTyLit s
+        Hs.PromotedCon _q n -> PromotedT (toName n)
+        Hs.PromotedList _q ts -> foldr (\t pl -> PromotedConsT `AppT` toType t `AppT` pl) PromotedNilT ts
+        Hs.PromotedTuple ts -> foldr (\t pt -> pt `AppT` toType t) (PromotedTupleT $ length ts) ts
+        Hs.PromotedUnit -> PromotedT ''()
+  toType (Hs.TyEquals t1 t2) = EqualityT `AppT` toType t1 `AppT` toType t2
+  toType t@(Hs.TySplice _) = noTH "toType" t
   toType t@Hs.TyBang{} =
-    nonsense "toType" "type cannot have strictness annotations in this context" t
+      nonsense "toType" "type cannot have strictness annotations in this context" t
+  toType t@(Hs.TyWildCard _) = noTH "toType" t
 
 
 toStrictType :: Hs.Type -> StrictType
@@ -572,6 +595,7 @@ collectVars e = case e of
   ForallT ns _ t -> collectVars t \\ ns
   _          -> []
 
+fixForall t@(ForallT _ _ _) = t
 fixForall t = case vs of
   [] -> t
   _  -> ForallT vs [] t
