@@ -31,6 +31,7 @@ class ToDecs a where toDecs :: a -> [Dec]
 class ToDec  a where toDec  :: a -> Dec
 class ToStmt a where toStmt :: a -> Stmt
 class ToLoc  a where toLoc  :: a -> Loc
+class ToCxt  a where toCxt  :: a -> Cxt
 
 -- for error messages
 moduleName = "Language.Haskell.Meta.Syntax.Translate"
@@ -344,30 +345,48 @@ instance ToType Hs.Type where
 
 
 toStrictType :: Hs.Type -> StrictType
+#if MIN_VERSION_template_haskell(2,11,0)
+toStrictType (Hs.TyBang Hs.UnpackedTy t) = toStrictType2 SourceUnpack t
+toStrictType t = toStrictType2 NoSourceUnpackedness t
+
+toStrictType2 u t@(Hs.TyBang _ Hs.TyBang{}) =
+  nonsense "toStrictType" "double strictness annotation" t
+toStrictType2 u (Hs.TyBang Hs.BangedTy t) = (Bang u SourceStrict, toType t)
+toStrictType2 u (Hs.TyBang Hs.UnpackedTy t) =
+  nonsense "toStrictType" "double unpackedness annotation" t
+toStrictType2 u t = (Bang u NoSourceStrictness, toType t)
+#else /* !MIN_VERSION_template_haskell(2,11,0) */
 toStrictType t@(Hs.TyBang _ Hs.TyBang{}) =
   nonsense "toStrictType" "double strictness annotation" t
 toStrictType (Hs.TyBang Hs.BangedTy t) = (IsStrict, toType t)
 toStrictType (Hs.TyBang Hs.UnpackedTy t) = (Unpacked, toType t)
 toStrictType t = (NotStrict, toType t)
-
+#endif /* !MIN_VERSION_template_haskell(2,11,0) */
 
 
 (.->.) :: Type -> Type -> Type
 a .->. b = AppT (AppT ArrowT a) b
 
-toCxt :: Hs.Context -> Cxt
-toCxt = fmap toPred
- where
+instance ToCxt Hs.Context where
+  toCxt = fmap toPred
+   where
 #if MIN_VERSION_template_haskell(2,10,0)
-  toPred (Hs.ClassA n ts) = foldl' AppT (ConT (toName n)) (fmap toType ts)
-  toPred (Hs.InfixA t1 n t2) = foldl' AppT (ConT (toName n)) (fmap toType [t1,t2])
-  toPred (Hs.EqualP t1 t2) = foldl' AppT EqualityT (fmap toType [t1,t2])
+    toPred (Hs.ClassA n ts) = foldl' AppT (ConT (toName n)) (fmap toType ts)
+    toPred (Hs.InfixA t1 n t2) = foldl' AppT (ConT (toName n)) (fmap toType [t1,t2])
+    toPred (Hs.EqualP t1 t2) = foldl' AppT EqualityT (fmap toType [t1,t2])
 #else
-  toPred (Hs.ClassA n ts) = ClassP (toName n) (fmap toType ts)
-  toPred (Hs.InfixA t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
-  toPred (Hs.EqualP t1 t2) = EqualP (toType t1) (toType t2)
+    toPred (Hs.ClassA n ts) = ClassP (toName n) (fmap toType ts)
+    toPred (Hs.InfixA t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
+    toPred (Hs.EqualP t1 t2) = EqualP (toType t1) (toType t2)
 #endif
-  toPred a@Hs.IParam{} = noTH "toCxt" a
+    toPred a@Hs.IParam{} = noTH "toCxt" a
+
+#if MIN_VERSION_template_haskell(2,11,0)
+instance ToCxt [Hs.Deriving] where
+  toCxt = fmap toPred
+   where
+    toPred (qn, ts) = foldl' AppT (ConT (toName qn)) (fmap toType ts)
+#endif
 
 foldAppT :: Type -> [Type] -> Type
 foldAppT t ts = foldl' AppT t ts
@@ -396,8 +415,15 @@ instance ToDec Hs.Decl where
         Hs.DataType -> DataD (toCxt cxt)
                              (toName n)
                              (fmap toTyVar ns)
+#if MIN_VERSION_template_haskell(2,11,0)
+                             Nothing
+#endif
                              (fmap qualConDeclToCon qcds)
+#if MIN_VERSION_template_haskell(2,11,0)
+                             (toCxt qns)
+#else
                              (fmap (toName . fst) qns)
+#endif
         Hs.NewType  -> let qcd = case qcds of
                                   [x] -> x
                                   _   -> nonsense "toDec" ("newtype with " ++
@@ -405,8 +431,15 @@ instance ToDec Hs.Decl where
                         in NewtypeD (toCxt cxt)
                                     (toName n)
                                     (fmap toTyVar ns)
+#if MIN_VERSION_template_haskell(2,11,0)
+                                    Nothing
+#endif
                                     (qualConDeclToCon qcd)
+#if MIN_VERSION_template_haskell(2,11,0)
+                                    (toCxt qns)
+#else
                                     (fmap (toName . fst) qns)
+#endif
 
   -- This type-signature conversion is just wrong. 
   -- Type variables need to be dealt with. /Jonas
@@ -433,12 +466,24 @@ instance ToDec Hs.Decl where
 
 #endif /* MIN_VERSION_template_haskell(2,8,0) */
 
+#if MIN_VERSION_template_haskell(2,11,0)
+  toDec (Hs.TypeFamDecl _ n ns k)
+    = OpenTypeFamilyD $ TypeFamilyHead (toName n)
+                                       (fmap toTyVar ns)
+                                       (maybe NoSig (KindSig . toKind) k)
+                                       Nothing
+
+  -- TODO: do something with context?
+  toDec (Hs.DataFamDecl _ _ n ns k)
+    = DataFamilyD (toName n) (fmap toTyVar ns) (fmap toKind k)
+#else
   toDec (Hs.TypeFamDecl _ n ns k)
     = FamilyD TypeFam (toName n) (fmap toTyVar ns) (fmap toKind k)
 
   -- TODO: do something with context?
   toDec (Hs.DataFamDecl _ _ n ns k)
     = FamilyD DataFam (toName n) (fmap toTyVar ns) (fmap toKind k)
+#endif /* MIN_VERSION_template_haskell(2,11,0) */
 
   toDec a@(Hs.FunBind mtchs)                           = hsMatchesToFunD mtchs
   toDec (Hs.PatBind _ p rhs bnds)                      = ValD (toPat p)
