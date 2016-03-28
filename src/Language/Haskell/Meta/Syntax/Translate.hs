@@ -385,6 +385,9 @@ toCxt = fmap toPred
   toPred (Hs.ClassA n ts) = foldl' AppT (ConT (toName n)) (fmap toType ts)
   toPred (Hs.InfixA t1 n t2) = foldl' AppT (ConT (toName n)) (fmap toType [t1,t2])
   toPred (Hs.EqualP t1 t2) = foldl' AppT EqualityT (fmap toType [t1,t2])
+  toPred (Hs.ParenA asst) = toPred asst
+  toPred a@Hs.AppA{} = todo "toCxt" a
+  toPred a@Hs.WildCardA{} = todo "toCxt" a
 #else
   toPred (Hs.ClassA n ts) = ClassP (toName n) (fmap toType ts)
   toPred (Hs.InfixA t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
