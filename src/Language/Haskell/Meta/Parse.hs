@@ -27,7 +27,11 @@ module Language.Haskell.Meta.Parse (
   emptyHsModule
  ) where
 
+#if MIN_VERSION_template_haskell(2,11,0)
+import Language.Haskell.TH.Syntax hiding (Extension(..))
+#else
 import Language.Haskell.TH.Syntax
+#endif
 import Language.Haskell.Meta.Syntax.Translate
 import qualified Language.Haskell.Exts.Syntax as Hs
 import Language.Haskell.Exts.Annotated.Fixity as Fix

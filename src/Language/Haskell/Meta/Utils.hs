@@ -229,14 +229,24 @@ conToConType ofType con = foldr (\a b -> AppT (AppT ArrowT a) b) ofType (conType
 
 
 decCons :: Dec -> [Con]
+#if MIN_VERSION_template_haskell(2,11,0)
+decCons (DataD _ _ _ _ cons _) = cons
+decCons (NewtypeD _ _ _ _ con _) = [con]
+#else
 decCons (DataD _ _ _ cons _) = cons
 decCons (NewtypeD _ _ _ con _) = [con]
+#endif
 decCons _ = []
 
 
 decTyVars :: Dec -> [TyVarBndr]
+#if MIN_VERSION_template_haskell(2,11,0)
+decTyVars (DataD _ _ ns _ _ _) = ns
+decTyVars (NewtypeD _ _ ns _ _ _) = ns
+#else
 decTyVars (DataD _ _ ns _ _) = ns
 decTyVars (NewtypeD _ _ ns _ _) = ns
+#endif
 decTyVars (TySynD _ ns _) = ns
 decTyVars (ClassD _ _ ns _ _) = ns
 decTyVars _ = []
@@ -244,8 +254,13 @@ decTyVars _ = []
 
 decName :: Dec -> Maybe Name
 decName (FunD n _) = Just n
+#if MIN_VERSION_template_haskell(2,11,0)
+decName (DataD _ n _ _ _ _) = Just n
+decName (NewtypeD _ n _ _ _ _) = Just n
+#else
 decName (DataD _ n _ _ _) = Just n
 decName (NewtypeD _ n _ _ _) = Just n
+#endif
 decName (TySynD n _ _) = Just n
 decName (ClassD _ n _ _ _) = Just n
 decName (SigD n _) = Just n
@@ -306,11 +321,19 @@ recCName (RecC n _) = Just n
 recCName _ = Nothing
 
 dataDCons :: Dec -> [Con]
+#if MIN_VERSION_template_haskell(2,11,0)
+dataDCons (DataD _ _ _ _ cons _) = cons
+#else
 dataDCons (DataD _ _ _ cons _) = cons
+#endif
 dataDCons _ = []
 
 fromDataConI :: Info -> Q (Maybe Exp)
+#if MIN_VERSION_template_haskell(2,11,0)
+fromDataConI (DataConI dConN ty tyConN) =
+#else
 fromDataConI (DataConI dConN ty tyConN fxty) =
+#endif
   let n = arityT ty
   in replicateM n (newName "a")
       >>= \ns -> return (Just (LamE
