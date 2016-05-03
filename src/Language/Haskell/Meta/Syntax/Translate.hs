@@ -496,10 +496,18 @@ instance ToDec Hs.Decl where
   -- the 'vars' bit seems to be for: instance forall a. C (T a) where ...
   -- TH's own parser seems to flat-out ignore them, and honestly I can't see
   -- that it's obviously wrong to do so.
+#if MIN_VERSION_template_haskell(2,11,0)
+  toDec (Hs.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD 
+    Nothing
+    (toCxt cxt) 
+    (foldl AppT (ConT (toName qname)) (map toType ts))
+    (toDecs ids)
+#else
   toDec (Hs.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD 
     (toCxt cxt) 
     (foldl AppT (ConT (toName qname)) (map toType ts))
     (toDecs ids)
+#endif
 
   toDec (Hs.ClassDecl _ cxt name ts fds decls) = ClassD
     (toCxt cxt)
