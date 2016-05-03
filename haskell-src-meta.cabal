@@ -15,7 +15,7 @@ synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
                     to template-haskell abstract syntax isn't 100% complete yet.
 
-extra-source-files: ChangeLog README examples/*.hs
+extra-source-files: ChangeLog README.md examples/*.hs
 
 library
   build-depends:   base >= 4.5 && < 4.10,
