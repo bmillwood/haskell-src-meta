@@ -1,3 +1,6 @@
+0.6.0.14:
+- Compatibility with GHC 8.0.
+
 0.6.0.13:
 - Compatibility with GHC HEAD, haskell-src-exts 1.17
 - Remove hsBindsToDecs, since it was redundant with toDecs. Technically this 
