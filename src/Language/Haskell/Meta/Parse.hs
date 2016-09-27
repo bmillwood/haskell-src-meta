@@ -33,10 +33,16 @@ import Language.Haskell.TH.Syntax hiding (Extension(..))
 import Language.Haskell.TH.Syntax
 #endif
 import Language.Haskell.Meta.Syntax.Translate
+#if MIN_VERSION_haskell_src_exts(1,18,0)
+import qualified Language.Haskell.Exts.Syntax as Hs
+import Language.Haskell.Exts.Fixity as Fix
+import Language.Haskell.Exts.Parser hiding (parseExp, parseType, parsePat)
+#else
 import qualified Language.Haskell.Exts.Annotated.Syntax as Hs
-import qualified Language.Haskell.Exts.SrcLoc as Hs
 import Language.Haskell.Exts.Annotated.Fixity as Fix
 import Language.Haskell.Exts.Annotated.Parser hiding (parseExp, parseType, parsePat)
+#endif
+import qualified Language.Haskell.Exts.SrcLoc as Hs
 import Language.Haskell.Exts.Extension
 import Language.Haskell.Exts.Pretty
 import Language.Haskell.Exts.Parser (ParseMode(..), ParseResult(..))
