@@ -19,7 +19,7 @@ extra-source-files: ChangeLog README.md examples/*.hs
 
 library
   build-depends:   base >= 4.5 && < 4.10,
-                   haskell-src-exts >= 1.18 && < 1.19,
+                   haskell-src-exts >= 1.17 && < 1.19,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.7,
                    template-haskell >= 2.7 && < 2.12,
