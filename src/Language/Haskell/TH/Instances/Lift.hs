@@ -7,7 +7,7 @@
   Portability :  portable (template-haskell)
 
   This module is exported for backwards-compatibility purposes.
-  All it does is re-export the instances defined in 
+  All it does is re-export the instances defined in
   "Language.Haskell.TH.Instances", from the th-orphans package.
 -}
 module Language.Haskell.TH.Instances.Lift

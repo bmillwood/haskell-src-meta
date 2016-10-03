@@ -1,4 +1,3 @@
-
 {- |
   Module      :  Language.Haskell.Meta
   Copyright   :  (c) Matt Morrow 2008

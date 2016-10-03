@@ -26,9 +26,9 @@ When this danger arises, we use this \"careful\" module. It handles \"unresolved
 
 -}
 module Language.Haskell.Meta.Parse.Careful(
-  parsePat, 
-  parseExp, 
-  parseType, 
+  parsePat,
+  parseExp,
+  parseType,
   parseDecs
  ) where
 
@@ -37,8 +37,8 @@ import qualified Language.Haskell.Meta.Syntax.Translate as Translate
 import qualified Language.Haskell.TH as TH
 import qualified Language.Haskell.Exts.Syntax as Hs
 
-doChecked parser translater p = 
-  case parser p of 
+doChecked parser translater p =
+  case parser p of
     Left s -> Left s
     Right p' | amb p' -> Left "Infix expression could not be resolved as operator fixities are not known. Resolve ambiguity by adding parentheses"
              | otherwise -> Right (translater p')

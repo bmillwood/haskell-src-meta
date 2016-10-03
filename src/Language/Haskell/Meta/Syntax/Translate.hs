@@ -181,12 +181,12 @@ instance ToPat Hs.Pat where
     FloatPrimL r' -> FloatPrimL (negate r')
     DoublePrimL r'' -> DoublePrimL (negate r'')
     _ -> nonsense "toPat" "negating wrong kind of literal" l
-  toPat (Hs.PInfixApp p n q) = UInfixP (toPat p) (toName n) (toPat q)    
+  toPat (Hs.PInfixApp p n q) = UInfixP (toPat p) (toName n) (toPat q)
   toPat (Hs.PApp n ps) = ConP (toName n) (fmap toPat ps)
   toPat (Hs.PTuple Hs.Boxed ps) = TupP (fmap toPat ps)
   toPat (Hs.PTuple Hs.Unboxed ps) = UnboxedTupP (fmap toPat ps)
   toPat (Hs.PList ps) = ListP (fmap toPat ps)
-  toPat (Hs.PParen p) = ParensP (toPat p)  
+  toPat (Hs.PParen p) = ParensP (toPat p)
   toPat (Hs.PRec n pfs) = let toFieldPat (Hs.PFieldPat n p) = (toName n, toPat p)
                           in RecP (toName n) (fmap toFieldPat pfs)
   toPat (Hs.PAsPat n p) = AsP (toName n) (toPat p)
@@ -303,7 +303,7 @@ instance ToType Hs.Kind where
   toType (Hs.KindParen kp) = toType kp
 #if !MIN_VERSION_haskell_src_exts(1,17,0)
   toType k@Hs.KindBang = noTH "toKind" k
-#endif                         
+#endif
   toType (Hs.KindVar n) = VarT (toName n)
 
 toKind :: Hs.Kind -> Kind
@@ -441,7 +441,7 @@ instance ToDec Hs.Decl where
                                     (fmap (toName . fst) qns)
 #endif
 
-  -- This type-signature conversion is just wrong. 
+  -- This type-signature conversion is just wrong.
   -- Type variables need to be dealt with. /Jonas
   toDec a@(Hs.TypeSig _ ns t)
     -- XXXXXXXXXXXXXX: oh crap, we can't return a [Dec] from this class!
@@ -459,9 +459,9 @@ instance ToDec Hs.Decl where
 
 #else
 
-  toDec (Hs.InlineConlikeSig _ act id)                 = PragmaD $ 
+  toDec (Hs.InlineConlikeSig _ act id)                 = PragmaD $
     InlineP (toName id) (InlineSpec True True $ transAct act)
-  toDec (Hs.InlineSig _ b act id)                      = PragmaD $ 
+  toDec (Hs.InlineSig _ b act id)                      = PragmaD $
     InlineP (toName id) (InlineSpec b False $ transAct act)
 
 #endif /* MIN_VERSION_template_haskell(2,8,0) */
@@ -497,14 +497,14 @@ instance ToDec Hs.Decl where
   -- TH's own parser seems to flat-out ignore them, and honestly I can't see
   -- that it's obviously wrong to do so.
 #if MIN_VERSION_template_haskell(2,11,0)
-  toDec (Hs.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD 
+  toDec (Hs.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD
     Nothing
-    (toCxt cxt) 
+    (toCxt cxt)
     (foldl AppT (ConT (toName qname)) (map toType ts))
     (toDecs ids)
 #else
-  toDec (Hs.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD 
-    (toCxt cxt) 
+  toDec (Hs.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD
+    (toCxt cxt)
     (foldl AppT (ConT (toName qname)) (map toType ts))
     (toDecs ids)
 #endif
