@@ -23,7 +23,7 @@ module Language.Haskell.Meta.Parse (
   parseHsPat,
   pprHsModule,
   moduleDecls,
-  emptySrcLoc,
+  noSrcSpanInfo,
   emptyHsModule
  ) where
 
@@ -33,11 +33,19 @@ import Language.Haskell.TH.Syntax hiding (Extension(..))
 import Language.Haskell.TH.Syntax
 #endif
 import Language.Haskell.Meta.Syntax.Translate
+#if MIN_VERSION_haskell_src_exts(1,18,0)
 import qualified Language.Haskell.Exts.Syntax as Hs
-import Language.Haskell.Exts.Annotated.Fixity as Fix
-import Language.Haskell.Exts.Extension
+import Language.Haskell.Exts.Fixity as Fix
 import Language.Haskell.Exts.Parser hiding (parseExp, parseType, parsePat)
+#else
+import qualified Language.Haskell.Exts.Annotated.Syntax as Hs
+import Language.Haskell.Exts.Annotated.Fixity as Fix
+import Language.Haskell.Exts.Annotated.Parser hiding (parseExp, parseType, parsePat)
+#endif
+import qualified Language.Haskell.Exts.SrcLoc as Hs
+import Language.Haskell.Exts.Extension
 import Language.Haskell.Exts.Pretty
+import Language.Haskell.Exts.Parser (ParseMode(..), ParseResult(..))
 
 -----------------------------------------------------------------------------
 
@@ -67,9 +75,7 @@ myDefaultParseMode = ParseMode
   ,ignoreLinePragmas = False
   ,ignoreLanguagePragmas = False
   ,fixities = Nothing
-#if MIN_VERSION_haskell_src_exts(1,17,0)
   ,ignoreFunctionArity = False
-#endif
   }
 
 myDefaultExtensions :: [KnownExtension]
@@ -90,47 +96,44 @@ parseResultToEither (ParseFailed loc e)
   = let line = Hs.srcLine loc - 1
     in Left (unlines [show line,show loc,e])
 
-parseHsModule :: String -> Either String Hs.Module
+parseHsModule :: String -> Either String (Hs.Module Hs.SrcSpanInfo)
 parseHsModule = parseResultToEither . parseModuleWithMode myDefaultParseMode
 
-parseHsDecls :: String -> Either String [Hs.Decl]
+parseHsDecls :: String -> Either String [Hs.Decl Hs.SrcSpanInfo]
 parseHsDecls = either Left (Right . moduleDecls)
   . parseResultToEither . parseModuleWithMode myDefaultParseMode
 
 
-parseHsType :: String -> Either String Hs.Type
+parseHsType :: String -> Either String (Hs.Type Hs.SrcSpanInfo)
 parseHsType = parseResultToEither . parseTypeWithMode myDefaultParseMode
 
 
-parseHsExp :: String -> Either String Hs.Exp
+parseHsExp :: String -> Either String (Hs.Exp Hs.SrcSpanInfo)
 parseHsExp = parseResultToEither . parseExpWithMode myDefaultParseMode
 
-parseHsPat :: String -> Either String Hs.Pat
+parseHsPat :: String -> Either String (Hs.Pat Hs.SrcSpanInfo)
 parseHsPat = parseResultToEither . parsePatWithMode myDefaultParseMode
 
-pprHsModule :: Hs.Module -> String
+pprHsModule :: Hs.Module Hs.SrcSpanInfo -> String
 pprHsModule = prettyPrint
 
 
-moduleDecls :: Hs.Module -> [Hs.Decl]
-moduleDecls (Hs.Module _ _ _ _ _ _ x) = x
+moduleDecls :: Hs.Module Hs.SrcSpanInfo -> [Hs.Decl Hs.SrcSpanInfo]
+moduleDecls (Hs.Module _ _ _ _ x) = x
 
 -- mkModule :: String -> Hs.Module
 -- mkModule s = Hs.Module undefined (Hs.ModuleName s) Nothing [] []
 
-emptySrcLoc :: Hs.SrcLoc
-emptySrcLoc = (Hs.SrcLoc [] 0 0)
-
-emptyHsModule :: String -> Hs.Module
+emptyHsModule :: String -> Hs.Module Hs.SrcSpanInfo
 emptyHsModule n =
     (Hs.Module
-        emptySrcLoc
-        (Hs.ModuleName n)
+        noSrcSpanInfo
+        (Just (Hs.ModuleHead noSrcSpanInfo (Hs.ModuleName noSrcSpanInfo n) Nothing Nothing))
         []
-        Nothing
-        Nothing
         []
         [])
+
+noSrcSpanInfo = Hs.noInfoSpan (Hs.mkSrcSpan Hs.noLoc Hs.noLoc)
 
 {-
 ghci> :i Module
