@@ -499,11 +499,11 @@ instance ToDec (Hs.Decl l) where
 #endif
 
 #else
+#if MIN_VERSION_haskell_src_exts(1,18,0)
   toDec (Hs.TypeFamDecl _ h sig inj)
     = FamilyD TypeFam (toName h) (toTyVars h) (toMaybeKind sig)
   toDec (Hs.DataFamDecl _ _ h sig)
     = FamilyD DataFam (toName h) (toTyVars h) (toMaybeKind sig)
-#if MIN_VERSION_haskell_src_exts(1,18,0)
 #else
   toDec (Hs.TypeFamDecl _ h k)
     = FamilyD TypeFam (toName h) (toTyVars h) (fmap toKind k)
