@@ -22,6 +22,7 @@ import qualified Language.Haskell.Exts.SrcLoc as Hs
 import qualified Language.Haskell.Exts.Syntax as Hs
 #else
 import qualified Language.Haskell.Exts.Annotated.Syntax as Hs
+import qualified Language.Haskell.Exts.Syntax as Old
 #endif
 
 -----------------------------------------------------------------------------
@@ -729,3 +730,481 @@ instance ToDecs a => ToDecs [a] where
   toDecs a = concatMap toDecs a
 
 -----------------------------------------------------------------------------
+
+#if !MIN_VERSION_haskell_src_exts(1,18,0)
+
+-- Instances for haskell-src-exts-1.17 support.  These are instances
+-- for the simplified types that were removed in
+-- haskell-src-exts-1.18.
+
+-- When to use each of these isn't always clear: prefer 'todo' if unsure.
+noTHOld :: Show e => String -> e -> a
+noTHOld fun thing = error . concat $ [moduleName, ".", fun,
+  ": template-haskell has no representation for: ", show thing]
+
+todoOld :: Show e => String -> e -> a
+todoOld fun thing = error . concat $ [moduleName, ".", fun,
+  ": not implemented: ", show thing]
+
+nonsenseOld :: Show e => String -> String -> e -> a
+nonsenseOld fun inparticular thing = error . concat $ [moduleName, ".", fun,
+  ": nonsensical: ", inparticular, ": ", show thing]
+
+instance ToName Old.Name where
+  toName (Old.Ident s) = toName s
+  toName (Old.Symbol s) = toName s
+
+instance ToName Old.Module where
+  toName (Old.Module _ (Old.ModuleName s) _ _ _ _ _) = toName s
+
+
+instance ToName Old.SpecialCon where
+  toName Old.UnitCon = '()
+  toName Old.ListCon = '[]
+  toName Old.FunCon  = ''(->)
+  toName (Old.TupleCon _ n)
+    | n<2 = '()
+    | otherwise =
+      let x = maybe [] (++".") (nameModule '(,))
+      in mkName . concat $ x : ["(",replicate (n-1) ',',")"]
+  toName Old.Cons    = '(:)
+
+
+instance ToName Old.QName where
+--  toName (Old.Qual (Old.Module []) n) = toName n
+  toName (Old.Qual (Old.ModuleName []) n) = toName n
+  toName (Old.Qual (Old.ModuleName m) n) =
+    let m' = show . toName $ m
+        n' = show . toName $ n
+    in toName . concat $ [m',".",n']
+  toName (Old.UnQual n) = toName n
+  toName (Old.Special s) = toName s
+
+
+instance ToName Old.Op where
+  toName (Old.VarOp n) = toName n
+  toName (Old.ConOp n) = toName n
+
+
+-----------------------------------------------------------------------------
+
+-- * ToLit HsLiteral
+
+
+instance ToLit Old.Literal where
+  toLit (Old.Char a) = CharL a
+  toLit (Old.String a) = StringL a
+  toLit (Old.Int a) = IntegerL a
+  toLit (Old.Frac a) = RationalL a
+  toLit l@Old.PrimChar{} = noTHOld "toLit" l
+  toLit (Old.PrimString a) = StringPrimL (map toWord8 a)
+   where
+    toWord8 = fromIntegral . ord
+  toLit (Old.PrimInt a) = IntPrimL a
+  toLit (Old.PrimFloat a) = FloatPrimL a
+  toLit (Old.PrimDouble a) = DoublePrimL a
+  toLit (Old.PrimWord a) = WordPrimL a
+
+
+-----------------------------------------------------------------------------
+
+-- * ToPat HsPat
+
+
+instance ToPat Old.Pat where
+  toPat (Old.PVar n)
+    = VarP (toName n)
+  toPat (Old.PLit Old.Signless l)
+    = LitP (toLit l)
+  toPat (Old.PLit Old.Negative l) = LitP $ case toLit l of
+    IntegerL z -> IntegerL (negate z)
+    RationalL q -> RationalL (negate q)
+    IntPrimL z' -> IntPrimL (negate z')
+    FloatPrimL r' -> FloatPrimL (negate r')
+    DoublePrimL r'' -> DoublePrimL (negate r'')
+    _ -> nonsenseOld "toPat" "negating wrong kind of literal" l
+  toPat (Old.PInfixApp p n q) = UInfixP (toPat p) (toName n) (toPat q)
+  toPat (Old.PApp n ps) = ConP (toName n) (fmap toPat ps)
+  toPat (Old.PTuple Old.Boxed ps) = TupP (fmap toPat ps)
+  toPat (Old.PTuple Old.Unboxed ps) = UnboxedTupP (fmap toPat ps)
+  toPat (Old.PList ps) = ListP (fmap toPat ps)
+  toPat (Old.PParen p) = ParensP (toPat p)
+  toPat (Old.PRec n pfs) = let toFieldPat (Old.PFieldPat n p) = (toName n, toPat p)
+                          in RecP (toName n) (fmap toFieldPat pfs)
+  toPat (Old.PAsPat n p) = AsP (toName n) (toPat p)
+  toPat (Old.PWildCard) = WildP
+  toPat (Old.PIrrPat p) = TildeP (toPat p)
+  toPat (Old.PatTypeSig _ p t) = SigP (toPat p) (toType t)
+  toPat (Old.PViewPat e p) = ViewP (toExp e) (toPat p)
+  -- regular pattern
+  toPat p@Old.PRPat{} = noTHOld "toPat" p
+  -- XML stuff
+  toPat p@Old.PXTag{} = noTHOld "toPat" p
+  toPat p@Old.PXETag{} = noTHOld "toPat" p
+  toPat p@Old.PXPcdata{} = noTHOld "toPat" p
+  toPat p@Old.PXPatTag{} = noTHOld "toPat" p
+  toPat (Old.PBangPat p) = BangP (toPat p)
+  toPat p = todoOld "toPat" p
+
+-----------------------------------------------------------------------------
+
+-- * ToExp HsExp
+
+instance ToExp Old.QOp where
+  toExp (Old.QVarOp n) = VarE (toName n)
+  toExp (Old.QConOp n) = ConE (toName n)
+
+toFieldExpOld :: Old.FieldUpdate -> FieldExp
+toFieldExpOld (Old.FieldUpdate n e) = (toName n, toExp e)
+
+
+
+instance ToExp Old.Exp where
+  toExp (Old.Var n)                 = VarE (toName n)
+  toExp e@Old.IPVar{}               = noTHOld "toExp" e
+  toExp (Old.Con n)                 = ConE (toName n)
+  toExp (Old.Lit l)                 = LitE (toLit l)
+  toExp (Old.InfixApp e o f)        = UInfixE (toExp e) (toExp o) (toExp f)
+  toExp (Old.App e f)               = AppE (toExp e) (toExp f)
+  toExp (Old.NegApp e)              = AppE (VarE 'negate) (toExp e)
+  toExp (Old.Lambda _ ps e)         = LamE (fmap toPat ps) (toExp e)
+  toExp (Old.Let bs e)              = LetE (toDecs bs) (toExp e)
+  toExp (Old.If a b c)              = CondE (toExp a) (toExp b) (toExp c)
+  toExp (Old.MultiIf ifs)           = MultiIfE (map toGuardOld ifs)
+  toExp (Old.Case e alts)           = CaseE (toExp e) (map toMatchOld alts)
+  toExp (Old.Do ss)                 = DoE (map toStmt ss)
+  toExp e@(Old.MDo _)               = noTHOld "toExp" e
+  toExp (Old.Tuple Old.Boxed xs)     = TupE (fmap toExp xs)
+  toExp (Old.Tuple Old.Unboxed xs)   = UnboxedTupE (fmap toExp xs)
+  toExp e@Old.TupleSection{}        = noTHOld "toExp" e
+  toExp (Old.List xs)               = ListE (fmap toExp xs)
+  toExp (Old.Paren e)               = ParensE (toExp e)
+  toExp (Old.LeftSection e o)       = InfixE (Just . toExp $ e) (toExp o) Nothing
+  toExp (Old.RightSection o f)      = InfixE Nothing (toExp o) (Just . toExp $ f)
+  toExp (Old.RecConstr n xs)        = RecConE (toName n) (fmap toFieldExpOld xs)
+  toExp (Old.RecUpdate e xs)        = RecUpdE (toExp e) (fmap toFieldExpOld xs)
+  toExp (Old.EnumFrom e)            = ArithSeqE $ FromR (toExp e)
+  toExp (Old.EnumFromTo e f)        = ArithSeqE $ FromToR (toExp e) (toExp f)
+  toExp (Old.EnumFromThen e f)      = ArithSeqE $ FromThenR (toExp e) (toExp f)
+  toExp (Old.EnumFromThenTo e f g)  = ArithSeqE $ FromThenToR (toExp e) (toExp f) (toExp g)
+  toExp (Old.ListComp e ss)         = CompE $ map convert ss ++ [NoBindS (toExp e)]
+   where
+    convert (Old.QualStmt st) = toStmt st
+    convert s = noTHOld "toExp ListComp" s
+  toExp (Old.ExpTypeSig _ e t)      = SigE (toExp e) (toType t)
+  toExp e = todoOld "toExp" e
+
+toMatchOld :: Old.Alt -> Match
+toMatchOld (Old.Alt _ p rhs ds) = Match (toPat p) (toBodyOld rhs) (toDecs ds)
+
+toBodyOld :: Old.Rhs -> Body
+toBodyOld (Old.UnGuardedRhs e) = NormalB $ toExp e
+toBodyOld (Old.GuardedRhss rhss) = GuardedB $ map toGuardOld rhss
+
+toGuardOld (Old.GuardedRhs _ stmts e) = (g, toExp e)
+  where
+    g = case map toStmt stmts of
+      [NoBindS x] -> NormalG x
+      xs -> PatG xs
+
+-----------------------------------------------------------------------------
+
+-- * ToType HsType
+
+instance ToName Old.TyVarBind where
+  toName (Old.KindedVar n _) = toName n
+  toName (Old.UnkindedVar n) = toName n
+
+instance ToType Old.Kind where
+  toType Old.KindStar = StarT
+  toType (Old.KindFn k1 k2) = toType k1 .->. toType k2
+  toType (Old.KindParen kp) = toType kp
+  toType (Old.KindVar n) = VarT (toName n)
+
+toKindOld :: Old.Kind -> Kind
+toKindOld = toType
+
+toTyVarOld :: Old.TyVarBind -> TyVarBndr
+toTyVarOld (Old.KindedVar n k) = KindedTV (toName n) (toKindOld k)
+toTyVarOld (Old.UnkindedVar n) = PlainTV (toName n)
+
+instance ToType Old.Type where
+  toType (Old.TyForall tvbM cxt t) = ForallT (maybe [] (fmap toTyVarOld) tvbM) (toCxt cxt) (toType t)
+  toType (Old.TyFun a b) = toType a .->. toType b
+  toType (Old.TyList t) = ListT `AppT` toType t
+  toType (Old.TyTuple b ts) = foldAppT (tuple . length $ ts) (fmap toType ts)
+   where
+    tuple = case b of
+      Old.Boxed -> TupleT
+      Old.Unboxed -> UnboxedTupleT
+  toType (Old.TyApp a b) = AppT (toType a) (toType b)
+  toType (Old.TyVar n) = VarT (toName n)
+  toType (Old.TyCon qn) = ConT (toName qn)
+  toType (Old.TyParen t) = toType t
+  -- XXX: need to wrap the name in parens!
+  toType (Old.TyInfix a o b) = AppT (AppT (ConT (toName o)) (toType a)) (toType b)
+  toType (Old.TyKind t k) = SigT (toType t) (toKindOld k)
+  toType t@Old.TyBang{} =
+    nonsenseOld "toType" "type cannot have strictness annotations in this context" t
+
+
+toStrictTypeOld :: Old.Type -> StrictType
+#if MIN_VERSION_template_haskell(2,11,0)
+toStrictTypeOld (Old.TyBang Old.UnpackedTy t) = toStrictType2Old SourceUnpack t
+toStrictTypeOld t = toStrictType2Old NoSourceUnpackedness t
+
+toStrictType2Old u t@(Old.TyBang _ Old.TyBang{}) =
+  nonsenseOld "toStrictType" "double strictness annotation" t
+toStrictType2Old u (Old.TyBang Old.BangedTy t) = (Bang u SourceStrict, toType t)
+toStrictType2Old u (Old.TyBang Old.UnpackedTy t) =
+  nonsenseOld "toStrictType" "double unpackedness annotation" t
+toStrictType2Old u t = (Bang u NoSourceStrictness, toType t)
+#else /* !MIN_VERSION_template_haskell(2,11,0) */
+toStrictTypeOld t@(Old.TyBang _ Old.TyBang{}) =
+  nonsenseOld "toStrictType" "double strictness annotation" t
+toStrictTypeOld (Old.TyBang Old.BangedTy t) = (IsStrict, toType t)
+toStrictTypeOld (Old.TyBang Old.UnpackedTy t) = (Unpacked, toType t)
+toStrictTypeOld t = (NotStrict, toType t)
+#endif /* !MIN_VERSION_template_haskell(2,11,0) */
+
+
+{-
+(.->.) :: Type -> Type -> Type
+a .->. b = AppT (AppT ArrowT a) b
+-}
+
+instance ToCxt Old.Context where
+  toCxt = fmap toPred
+   where
+#if MIN_VERSION_template_haskell(2,10,0)
+    toPred (Old.ClassA n ts) = foldl' AppT (ConT (toName n)) (fmap toType ts)
+    toPred (Old.InfixA t1 n t2) = foldl' AppT (ConT (toName n)) (fmap toType [t1,t2])
+    toPred (Old.EqualP t1 t2) = foldl' AppT EqualityT (fmap toType [t1,t2])
+#else /* MIN_VERSION_template_haskell(2,10,0) */
+    toPred (Old.ClassA n ts) = ClassP (toName n) (fmap toType ts)
+    toPred (Old.InfixA t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
+    toPred (Old.EqualP t1 t2) = EqualP (toType t1) (toType t2)
+#endif /* MIN_VERSION_template_haskell(2,10,0) */
+    toPred a@Old.IParam{} = noTHOld "toCxt" a
+
+#if MIN_VERSION_template_haskell(2,11,0)
+instance ToCxt [Old.Deriving] where
+  toCxt = fmap toPred
+   where
+    toPred (qn, ts) = foldl' AppT (ConT (toName qn)) (fmap toType ts)
+#endif /* MIN_VERSION_template_haskell(2,11,0) */
+
+{-
+foldAppT :: Type -> [Type] -> Type
+foldAppT t ts = foldl' AppT t ts
+-}
+
+-----------------------------------------------------------------------------
+
+-- * ToStmt HsStmt
+
+instance ToStmt Old.Stmt where
+  toStmt (Old.Generator _ p e)  = BindS (toPat p) (toExp e)
+  toStmt (Old.Qualifier e)      = NoBindS (toExp e)
+  toStmt a@(Old.LetStmt bnds)   = LetS (toDecs bnds)
+  toStmt s@Old.RecStmt{}        = noTHOld "toStmt" s
+
+
+-----------------------------------------------------------------------------
+
+-- * ToDec HsDecl
+
+instance ToDec Old.Decl where
+  toDec (Old.TypeDecl _ n ns t)
+    = TySynD (toName n) (fmap toTyVarOld ns) (toType t)
+
+  toDec a@(Old.DataDecl  _ dOrN cxt n ns qcds qns)
+    = case dOrN of
+        Old.DataType -> DataD (toCxt cxt)
+                             (toName n)
+                             (fmap toTyVarOld ns)
+#if MIN_VERSION_template_haskell(2,11,0)
+                             Nothing
+#endif /* MIN_VERSION_template_haskell(2,11,0) */
+                             (fmap qualConDeclToConOld qcds)
+#if MIN_VERSION_template_haskell(2,11,0)
+                             (toCxt qns)
+#else /* MIN_VERSION_template_haskell(2,11,0) */
+                             (fmap (toName . fst) qns)
+#endif /* MIN_VERSION_template_haskell(2,11,0) */
+        Old.NewType  -> let qcd = case qcds of
+                                  [x] -> x
+                                  _   -> nonsenseOld "toDec" ("newtype with " ++
+                                           "wrong number of constructors") a
+                        in NewtypeD (toCxt cxt)
+                                    (toName n)
+                                    (fmap toTyVarOld ns)
+#if MIN_VERSION_template_haskell(2,11,0)
+                                    Nothing
+#endif /* MIN_VERSION_template_haskell(2,11,0) */
+                                    (qualConDeclToConOld qcd)
+#if MIN_VERSION_template_haskell(2,11,0)
+                                    (toCxt qns)
+#else /* MIN_VERSION_template_haskell(2,11,0) */
+                                    (fmap (toName . fst) qns)
+#endif /* MIN_VERSION_template_haskell(2,11,0) */
+
+  -- This type-signature conversion is just wrong.
+  -- Type variables need to be dealt with. /Jonas
+  toDec a@(Old.TypeSig _ ns t)
+    -- XXXXXXXXXXXXXX: oh crap, we can't return a [Dec] from this class!
+    = let xs = fmap (flip SigD (toType t) . toName) ns
+      in case xs of x:_ -> x; [] -> error "toDec: malformed TypeSig!"
+
+  toDec (Old.InlineConlikeSig _ act qn) = PragmaD $
+    InlineP (toName qn) Inline ConLike (transActOld act)
+  toDec (Old.InlineSig _ b act qn) = PragmaD $
+    InlineP (toName qn) inline FunLike (transActOld act)
+   where
+    inline | b = Inline | otherwise = NoInline
+
+#if MIN_VERSION_template_haskell(2,11,0)
+  toDec (Old.TypeFamDecl _ n ns k)
+    = OpenTypeFamilyD $ TypeFamilyHead (toName n)
+                                       (fmap toTyVarOld ns)
+                                       (maybe NoSig (KindSig . toKindOld) k)
+                                       Nothing
+
+  -- TODOOLD: do something with context?
+  toDec (Old.DataFamDecl _ _ n ns k)
+    = DataFamilyD (toName n) (fmap toTyVarOld ns) (fmap toKindOld k)
+#else /* MIN_VERSION_template_haskell(2,11,0) */
+  toDec (Old.TypeFamDecl _ n ns k)
+    = FamilyD TypeFam (toName n) (fmap toTyVarOld ns) (fmap toKindOld k)
+
+  -- TODO: do something with context?
+  toDec (Old.DataFamDecl _ _ n ns k)
+    = FamilyD DataFam (toName n) (fmap toTyVarOld ns) (fmap toKindOld k)
+#endif /* MIN_VERSION_template_haskell(2,11,0) */
+
+  toDec a@(Old.FunBind mtchs)                           = hsMatchesToFunDOld mtchs
+  toDec (Old.PatBind _ p rhs bnds)                      = ValD (toPat p)
+                                                              (hsRhsToBodyOld rhs)
+                                                              (toDecs bnds)
+
+  toDec i@(Old.InstDecl _ (Just overlap) _ _ _ _ _) =
+    noTHOld "toDec" (overlap, i)
+
+  -- the 'vars' bit seems to be for: instance forall a. C (T a) where ...
+  -- TH's own parser seems to flat-out ignore them, and honestly I can't see
+  -- that it's obviously wrong to do so.
+#if MIN_VERSION_template_haskell(2,11,0)
+  toDec (Old.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD
+    Nothing
+    (toCxt cxt)
+    (foldl AppT (ConT (toName qname)) (map toType ts))
+    (toDecs ids)
+#else /* MIN_VERSION_template_haskell(2,11,0) */
+  toDec (Old.InstDecl _ Nothing _vars cxt qname ts ids) = InstanceD
+    (toCxt cxt)
+    (foldl AppT (ConT (toName qname)) (map toType ts))
+    (toDecs ids)
+#endif /* MIN_VERSION_template_haskell(2,11,0) */
+
+  toDec (Old.ClassDecl _ cxt name ts fds decls) = ClassD
+    (toCxt cxt)
+    (toName name)
+    (fmap toTyVarOld ts)
+    (fmap toFunDep fds)
+    (fmap classDeclToDec decls)
+   where
+    classDeclToDec cd = case cd of
+      (Old.ClsDecl d) -> toDec d
+      x -> todoOld "classDecl" x
+    toFunDep (Old.FunDep ls rs) = FunDep (fmap toName ls) (fmap toName rs)
+
+  toDec x = todoOld "toDec" x
+
+transActOld :: Old.Activation -> Phases
+transActOld Old.AlwaysActive = AllPhases
+transActOld (Old.ActiveFrom n) = FromPhase n
+transActOld (Old.ActiveUntil n) = BeforePhase n
+
+qualConDeclToConOld :: Old.QualConDecl -> Con
+qualConDeclToConOld (Old.QualConDecl _ [] [] cdecl) = conDeclToConOld cdecl
+qualConDeclToConOld (Old.QualConDecl _ ns cxt cdecl) = ForallC (fmap toTyVarOld ns)
+                                                    (toCxt cxt)
+                                                    (conDeclToConOld cdecl)
+conDeclToConOld :: Old.ConDecl -> Con
+conDeclToConOld (Old.ConDecl n tys)
+  = NormalC (toName n) (map toStrictTypeOld tys)
+conDeclToConOld (Old.RecDecl n fieldDecls)
+  = RecC (toName n) (concatMap convField fieldDecls)
+  where
+    convField (fields, t) =
+      let (strict, ty) = toStrictTypeOld t
+      in map (\field -> (toName field, strict, ty)) fields
+
+hsMatchesToFunDOld :: [Old.Match] -> Dec
+hsMatchesToFunDOld [] = FunD (mkName []) []   -- errorish
+hsMatchesToFunDOld xs@(Old.Match _ n _ _ _ _:_) = FunD (toName n) (fmap hsMatchToClauseOld xs)
+
+
+hsMatchToClauseOld :: Old.Match -> Clause
+hsMatchToClauseOld (Old.Match _ _ ps _ rhs bnds) = Clause
+                                                (fmap toPat ps)
+                                                (hsRhsToBodyOld rhs)
+                                                (toDecs bnds)
+
+
+hsRhsToBodyOld :: Old.Rhs -> Body
+hsRhsToBodyOld (Old.UnGuardedRhs e) = NormalB (toExp e)
+hsRhsToBodyOld (Old.GuardedRhss hsgrhs) = let fromGuardedB (GuardedB a) = a
+                                          in GuardedB . concat
+                                                 . fmap (fromGuardedB . hsGuardedRhsToBodyOld)
+                                                       $ hsgrhs
+
+
+
+hsGuardedRhsToBodyOld :: Old.GuardedRhs -> Body
+hsGuardedRhsToBodyOld (Old.GuardedRhs _ [] e)  = NormalB (toExp e)
+hsGuardedRhsToBodyOld (Old.GuardedRhs _ [s] e) = GuardedB [(hsStmtToGuardOld s, toExp e)]
+hsGuardedRhsToBodyOld (Old.GuardedRhs _ ss e)  =
+    let ss' = fmap hsStmtToGuardOld ss
+        (pgs,ngs) = unzip [(p,n)
+                           | (PatG p) <- ss'
+                          , n@(NormalG _) <- ss']
+        e' = toExp e
+        patg = PatG (concat pgs)
+    in GuardedB $ (patg,e') : zip ngs (repeat e')
+
+
+
+hsStmtToGuardOld :: Old.Stmt -> Guard
+hsStmtToGuardOld (Old.Generator _ p e) = PatG [BindS (toPat p) (toExp e)]
+hsStmtToGuardOld (Old.Qualifier e)     = NormalG (toExp e)
+hsStmtToGuardOld (Old.LetStmt bs)      = PatG [LetS (toDecs bs)]
+
+-----------------------------------------------------------------------------
+
+-- * ToDecs InstDecl
+instance ToDecs Old.InstDecl where
+  toDecs (Old.InsDecl decl) = toDecs decl
+  toDecs d              = todoOld "toDec" d
+
+-- * ToDecs HsDecl HsBinds
+
+instance ToDecs Old.Decl where
+  toDecs a@(Old.TypeSig _ ns t)
+    = let xs = fmap (flip SigD (fixForall $ toType t) . toName) ns
+       in xs
+
+  toDecs (Old.InfixDecl _ assoc fixity ops) =
+    map (\op -> InfixD (Fixity fixity dir) (toName op)) ops
+   where
+    dir = case assoc of
+      Old.AssocNone -> InfixN
+      Old.AssocLeft -> InfixL
+      Old.AssocRight -> InfixR
+
+  toDecs a = [toDec a]
+
+instance ToDecs Old.Binds where
+  toDecs (Old.BDecls ds)   = toDecs ds
+  toDecs a@(Old.IPBinds {}) = noTHOld "ToDecs Old.Binds" a
+#endif
