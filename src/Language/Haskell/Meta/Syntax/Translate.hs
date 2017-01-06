@@ -443,6 +443,8 @@ instance ToDec (Hs.Decl l) where
 #endif
                              (fmap qualConDeclToCon qcds)
 #if MIN_VERSION_template_haskell(2,11,0)
+                             [DerivClause Nothing (toCxt qns)]
+#elif MIN_VERSION_template_haskell(2,11,0)
                              (toCxt qns)
 #else
                              (toNames qns)
@@ -458,7 +460,9 @@ instance ToDec (Hs.Decl l) where
                                     Nothing
 #endif
                                     (qualConDeclToCon qcd)
-#if MIN_VERSION_template_haskell(2,11,0)
+#if MIN_VERSION_template_haskell(2,12,0)
+                                    [DerivClause Nothing (toCxt qns)]
+#elif MIN_VERSION_template_haskell(2,11,0)
                                     (toCxt qns)
 #else
                                     (toNames qns)
