@@ -352,6 +352,7 @@ toStrictType (Hs.TyBang _ s u t) = (Bang (toUnpack u) (toStrict s), toType t)
       toUnpack (Hs.Unpack _) = SourceUnpack
       toUnpack (Hs.NoUnpack _) = SourceNoUnpack
       toUnpack (Hs.NoUnpackPragma _) = NoSourceUnpackedness
+toStrictType x = (Bang NoSourceUnpackedness NoSourceStrictness, toType x)
 #else
 -- TyBang l (BangType l) (Unpackedness l) (Type l)
 -- data BangType l = BangedTy l	| LazyTy l | NoStrictAnnot l
@@ -362,6 +363,7 @@ toStrictType (Hs.TyBang _ b u t) = (toStrict b u, toType t)
       toStrict (Hs.BangedTy _) _ = IsStrict
       toStrict _ (Hs.Unpack _) = Unpacked
       toStrict _ _ = NotStrict
+toStrictType x = (NotStrict, toType x)
 #endif
 #else
 #if MIN_VERSION_template_haskell(2,11,0)
