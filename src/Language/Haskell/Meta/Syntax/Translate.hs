@@ -443,7 +443,9 @@ instance ToDec (Hs.Decl l) where
 #endif
                              (fmap qualConDeclToCon qcds)
 #if MIN_VERSION_template_haskell(2,11,0)
-                             (toCxt qns)
+                             -- Convert a Deriving into a list of types, one for each derived class
+                             -- Assumes that the types do not have any contexts
+                             (maybe [] (\(Hs.Deriving _ q) -> map toType q) qns)
 #else
                              (toNames qns)
 #endif
@@ -459,7 +461,7 @@ instance ToDec (Hs.Decl l) where
 #endif
                                     (qualConDeclToCon qcd)
 #if MIN_VERSION_template_haskell(2,11,0)
-                                    (toCxt qns)
+                                    (maybe [] (\(Hs.Deriving _ q) -> map toType q) qns)
 #else
                                     (toNames qns)
 #endif
