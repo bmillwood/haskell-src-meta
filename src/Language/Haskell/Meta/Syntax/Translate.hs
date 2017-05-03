@@ -47,7 +47,8 @@ class ToMaybeKind a where toMaybeKind :: a -> Maybe Kind
 class ToInjectivityAnn a where toInjectivityAnn :: a -> InjectivityAnn
 #endif
 
-#if MIN_VERSION_template_haskell(2,11,0)
+#if MIN_VERSION_template_haskell(2,12,0)
+#elif MIN_VERSION_template_haskell(2,11,0)
 type DerivClause = Pred
 #else
 type DerivClause = Name
@@ -410,7 +411,10 @@ instance ToPred (Hs.Asst l) where
     toPred a@Hs.IParam{} = noTH "toCxt" a
     toPred p = todo "toPred" p
 
-#if MIN_VERSION_template_haskell(2,11,0)
+#if MIN_VERSION_template_haskell(2,12,0)
+instance ToDerivClauses (Hs.Deriving l) where
+  toDerivClauses (Hs.Deriving _ irules) = [DerivClause Nothing (map toType irules)]
+#elif MIN_VERSION_template_haskell(2,11,0)
 instance ToDerivClauses (Hs.Deriving l) where
   toDerivClauses (Hs.Deriving _ irules) = map toType irules
 #else
