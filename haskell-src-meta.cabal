@@ -37,9 +37,7 @@ library
   hs-source-dirs:  src
   exposed-modules: Language.Haskell.Meta
                    Language.Haskell.Meta.Parse
-                   Language.Haskell.Meta.Parse.Careful
                    Language.Haskell.Meta.Syntax.Translate
-                   Language.Haskell.TH.Instances.Lift
                    Language.Haskell.Meta.Utils
 
 source-repository head
