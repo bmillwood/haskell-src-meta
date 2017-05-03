@@ -47,6 +47,14 @@ class ToInjectivityAnn a where toInjectivityAnn :: a -> InjectivityAnn
 #endif
 #endif
 
+#if MIN_VERSION_template_haskell(2,11,0)
+type DerivClause = Pred
+#else
+type DerivClause = Name
+#endif
+
+class ToDerivClauses a where toDerivClauses :: a -> [DerivClause]
+
 -- for error messages
 moduleName = "Language.Haskell.Meta.Syntax.Translate"
 
@@ -403,15 +411,16 @@ instance ToPred (Hs.Asst l) where
     toPred p = todo "toPred" p
 
 #if MIN_VERSION_template_haskell(2,11,0)
-instance ToCxt (Hs.Deriving l) where
-  toCxt (Hs.Deriving _ rule) = toCxt rule
-instance ToCxt [Hs.InstRule l] where
-  toCxt = concatMap toCxt
+instance ToDerivClauses (Hs.Deriving l) where
+  toDerivClauses (Hs.Deriving _ irules) = map toType irules
+#else
+instance ToDerivClauses (Hs.Deriving l) where
+  toDerivClauses (Hs.Deriving _ irules) = concatMap toNames irules
 #endif
 
-instance ToCxt a => ToCxt (Maybe a) where
-    toCxt Nothing = []
-    toCxt (Just a) = toCxt a
+instance ToDerivClauses a => ToDerivClauses (Maybe a) where
+  toDerivClauses Nothing  = []
+  toDerivClauses (Just a) = toDerivClauses a
 
 foldAppT :: Type -> [Type] -> Type
 foldAppT t ts = foldl' AppT t ts
@@ -444,13 +453,7 @@ instance ToDec (Hs.Decl l) where
                              Nothing
 #endif
                              (fmap qualConDeclToCon qcds)
-#if MIN_VERSION_template_haskell(2,11,0)
-                             -- Convert a Deriving into a list of types, one for each derived class
-                             -- Assumes that the types do not have any contexts
-                             (maybe [] (\(Hs.Deriving _ q) -> map toType q) qns)
-#else
-                             (toNames qns)
-#endif
+                             (toDerivClauses qns)
         Hs.NewType _  -> let qcd = case qcds of
                                      [x] -> x
                                      _   -> nonsense "toDec" ("newtype with " ++
@@ -462,11 +465,7 @@ instance ToDec (Hs.Decl l) where
                                     Nothing
 #endif
                                     (qualConDeclToCon qcd)
-#if MIN_VERSION_template_haskell(2,11,0)
-                                    (maybe [] (\(Hs.Deriving _ q) -> map toType q) qns)
-#else
-                                    (toNames qns)
-#endif
+                                    (toDerivClauses qns)
 
   -- This type-signature conversion is just wrong.
   -- Type variables need to be dealt with. /Jonas
@@ -609,6 +608,10 @@ instance ToCxt (Hs.Context l) where
               Hs.CxEmpty _ -> []
               Hs.CxSingle _ x' -> [toPred x']
               Hs.CxTuple _ xs -> fmap toPred xs
+
+instance ToCxt a => ToCxt (Maybe a) where
+    toCxt Nothing = []
+    toCxt (Just a) = toCxt a
 
 instance ToType (Hs.InstRule l) where
     toType (Hs.IRule _ _ _ h) = toType h
