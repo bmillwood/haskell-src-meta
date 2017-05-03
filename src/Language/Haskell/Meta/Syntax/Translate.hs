@@ -42,9 +42,9 @@ class ToPred a where toPred :: a -> Pred
 class ToTyVars a where toTyVars :: a -> [TyVarBndr]
 #if MIN_VERSION_haskell_src_exts(1,18,0)
 class ToMaybeKind a where toMaybeKind :: a -> Maybe Kind
+#endif
 #if MIN_VERSION_template_haskell(2,11,0)
 class ToInjectivityAnn a where toInjectivityAnn :: a -> InjectivityAnn
-#endif
 #endif
 
 #if MIN_VERSION_template_haskell(2,11,0)
