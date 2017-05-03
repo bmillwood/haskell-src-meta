@@ -1,3 +1,6 @@
+0.7.0.1
+- Fixed a bug that caused deriving clauses to be ignored on TH 2.11.
+
 0.7.0
 - Compatibility with haskell-src-exts 1.18.
 - Support dropped for GHC < 7.6 and haskell-src-exts < 1.17.
@@ -7,7 +10,7 @@
 
 0.6.0.13:
 - Compatibility with GHC HEAD, haskell-src-exts 1.17
-- Remove hsBindsToDecs, since it was redundant with toDecs. Technically this 
+- Remove hsBindsToDecs, since it was redundant with toDecs. Technically this
   requires a minor-version bump, but I doubt anyone was using it.
 
 0.6.0.12:
