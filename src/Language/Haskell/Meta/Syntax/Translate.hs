@@ -351,7 +351,6 @@ instance ToType (Hs.Type l) where
 
 
 toStrictType :: Hs.Type l -> StrictType
-#if MIN_VERSION_haskell_src_exts(1,18,0)
 #if MIN_VERSION_template_haskell(2,11,0)
 toStrictType (Hs.TyBang _ s u t) = (Bang (toUnpack u) (toStrict s), toType t)
     where
@@ -362,7 +361,7 @@ toStrictType (Hs.TyBang _ s u t) = (Bang (toUnpack u) (toStrict s), toType t)
       toUnpack (Hs.NoUnpack _) = SourceNoUnpack
       toUnpack (Hs.NoUnpackPragma _) = NoSourceUnpackedness
 toStrictType x = (Bang NoSourceUnpackedness NoSourceStrictness, toType x)
-#else
+#elif MIN_VERSION_haskell_src_exts(1,18,0)
 -- TyBang l (BangType l) (Unpackedness l) (Type l)
 -- data BangType l = BangedTy l	| LazyTy l | NoStrictAnnot l
 -- data Unpackedness l = Unpack l | NoUnpack l | NoUnpackPragma l
@@ -373,25 +372,12 @@ toStrictType (Hs.TyBang _ b u t) = (toStrict b u, toType t)
       toStrict _ (Hs.Unpack _) = Unpacked
       toStrict _ _ = NotStrict
 toStrictType x = (NotStrict, toType x)
-#endif
 #else
-#if MIN_VERSION_template_haskell(2,11,0)
-toStrictType (Hs.TyBang _ (Hs.UnpackedTy _) t) = toStrictType2 SourceUnpack t
-toStrictType t = toStrictType2 NoSourceUnpackedness t
-
-toStrictType2 u t@(Hs.TyBang _ _ Hs.TyBang{}) =
-  nonsense "toStrictType" "double strictness annotation" t
-toStrictType2 u (Hs.TyBang _ (Hs.BangedTy _) t) = (Bang u SourceStrict, toType t)
-toStrictType2 u (Hs.TyBang _ (Hs.UnpackedTy _) t) =
-  nonsense "toStrictType" "double unpackedness annotation" t
-toStrictType2 u t = (Bang u NoSourceStrictness, toType t)
-#else /* !MIN_VERSION_template_haskell(2,11,0) */
 toStrictType t@(Hs.TyBang _ _ Hs.TyBang{}) =
   nonsense "toStrictType" "double strictness annotation" t
 toStrictType (Hs.TyBang _ (Hs.BangedTy _) t) = (IsStrict, toType t)
 toStrictType (Hs.TyBang _ (Hs.UnpackedTy _) t) = (Unpacked, toType t)
 toStrictType t = (NotStrict, toType t)
-#endif /* !MIN_VERSION_template_haskell(2,11,0) */
 #endif
 
 
@@ -486,7 +472,6 @@ instance ToDec (Hs.Decl l) where
     inline | b = Inline | otherwise = NoInline
 
 #if MIN_VERSION_template_haskell(2,11,0)
-#if MIN_VERSION_haskell_src_exts(1,18,0)
   toDec (Hs.TypeFamDecl _ h sig inj)
     = OpenTypeFamilyD $ TypeFamilyHead (toName h)
                                        (toTyVars h)
@@ -494,19 +479,7 @@ instance ToDec (Hs.Decl l) where
                                        (fmap toInjectivityAnn inj)
   toDec (Hs.DataFamDecl _ _ h sig)
     = DataFamilyD (toName h) (toTyVars h) (toMaybeKind sig)
-#else
-  toDec (Hs.TypeFamDecl _ h k)
-    = OpenTypeFamilyD $ TypeFamilyHead (toName h)
-                                       (toTyVars h)
-                                       (maybe NoSig (KindSig . toKind) k)
-                                       Nothing
-  -- TODO: do something with context?
-  toDec (Hs.DataFamDecl _ _ h k)
-    = DataFamilyD (toName h) (toTyVars h) (fmap toKind k)
-#endif
-
-#else
-#if MIN_VERSION_haskell_src_exts(1,18,0)
+#elif MIN_VERSION_haskell_src_exts(1,18,0)
   toDec (Hs.TypeFamDecl _ h sig inj)
     = FamilyD TypeFam (toName h) (toTyVars h) (toMaybeKind sig)
   toDec (Hs.DataFamDecl _ _ h sig)
@@ -519,7 +492,6 @@ instance ToDec (Hs.Decl l) where
   toDec (Hs.DataFamDecl _ _ h k)
     = FamilyD DataFam (toName h) (toTyVars h) (fmap toKind k)
 #endif
-#endif /* MIN_VERSION_template_haskell(2,11,0) */
 
   toDec a@(Hs.FunBind _ mtchs)                           = hsMatchesToFunD mtchs
   toDec (Hs.PatBind _ p rhs bnds)                      = ValD (toPat p)
@@ -564,11 +536,11 @@ instance ToMaybeKind (Hs.ResultSig l) where
 instance ToMaybeKind a => ToMaybeKind (Maybe a) where
     toMaybeKind Nothing = Nothing
     toMaybeKind (Just a) = toMaybeKind a
+#endif
 
 #if MIN_VERSION_template_haskell(2,11,0)
 instance ToInjectivityAnn (Hs.InjectivityInfo l) where
   toInjectivityAnn (Hs.InjectivityInfo _ n ns) = InjectivityAnn (toName n) (fmap toName ns)
-#endif
 #endif
 
 transAct :: Maybe (Hs.Activation l) -> Phases
