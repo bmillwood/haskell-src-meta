@@ -25,15 +25,6 @@ library
                    template-haskell >= 2.7 && < 2.13,
                    th-orphans >= 0.9.1 && < 0.14
 
-  extensions:      CPP,
-                   RankNTypes,
-                   StandaloneDeriving,
-                   TemplateHaskell,
-                   TypeSynonymInstances,
-                   FlexibleContexts,
-                   FlexibleInstances,
-                   DeriveDataTypeable,
-                   PatternGuards
   hs-source-dirs:  src
   exposed-modules: Language.Haskell.Meta
                    Language.Haskell.Meta.Parse
