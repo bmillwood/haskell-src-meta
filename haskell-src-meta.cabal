@@ -1,6 +1,6 @@
 name:               haskell-src-meta
 version:            0.7.0.1
-cabal-version:      >= 1.6
+cabal-version:      >= 1.8
 build-type:         Simple
 license:            BSD3
 license-file:       LICENSE
@@ -9,7 +9,6 @@ author:             Matt Morrow
 copyright:          (c) Matt Morrow
 maintainer:         Ben Millwood <haskell@benmachine.co.uk>
 bug-reports:        https://github.com/bmillwood/haskell-src-meta/issues
--- That is to say, "builds with". It's not like we have a testsuite.
 tested-with:        GHC == 7.6.3, GHC == 7.8.3, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.1
 synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
@@ -33,6 +32,21 @@ library
                    Language.Haskell.Meta.Parse
                    Language.Haskell.Meta.Syntax.Translate
                    Language.Haskell.Meta.Utils
+
+test-suite unit
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   tests
+  main-is:          Main.hs
+
+  build-depends:
+    HUnit                >= 1.2  && < 1.7,
+    base                 >= 4.5  && < 4.11,
+    haskell-src-exts     >= 1.17 && < 1.20,
+    haskell-src-meta,
+    pretty               >= 1.0  && < 1.2,
+    template-haskell     >= 2.7  && < 2.13,
+    test-framework       >= 0.8  && < 0.9,
+    test-framework-hunit >= 0.3  && < 0.4
 
 source-repository head
   type:     git
