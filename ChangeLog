@@ -1,3 +1,7 @@
+0.8
+- Compatibility with GHC 8.2.
+- Remove deprecated modules.
+
 0.7.0.1
 - Fixed a bug that caused deriving clauses to be ignored on TH 2.11.
 
