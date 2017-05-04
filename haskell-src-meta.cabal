@@ -25,6 +25,9 @@ library
                    template-haskell >= 2.7 && < 2.13,
                    th-orphans >= 0.9.1 && < 0.14
 
+  if impl(ghc < 7.8)
+    build-depends: safe <= 0.3.9
+
   hs-source-dirs:  src
   exposed-modules: Language.Haskell.Meta
                    Language.Haskell.Meta.Parse
