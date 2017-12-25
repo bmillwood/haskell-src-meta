@@ -344,7 +344,12 @@ instance ToType (Hs.Type l) where
   toType (Hs.TyCon _ qn) = ConT (toName qn)
   toType (Hs.TyParen _ t) = toType t
   -- XXX: need to wrap the name in parens!
-  toType (Hs.TyInfix _ a o b) = AppT (AppT (ConT (toName o)) (toType a)) (toType b)
+#if MIN_VERSION_haskell_src_exts(1,20,0)
+  toType (Hs.TyInfix _ a (Hs.UnpromotedName _ o) b) =
+#else
+  toType (Hs.TyInfix _ a o b) =
+#endif
+    AppT (AppT (ConT (toName o)) (toType a)) (toType b)
   toType (Hs.TyKind _ t k) = SigT (toType t) (toKind k)
   toType t@Hs.TyBang{} =
     nonsense "toType" "type cannot have strictness annotations in this context" t
@@ -399,18 +404,38 @@ instance ToPred (Hs.Asst l) where
 
 #if MIN_VERSION_template_haskell(2,12,0)
 instance ToDerivClauses (Hs.Deriving l) where
+#if MIN_VERSION_haskell_src_exts(1,20,0)
+  toDerivClauses (Hs.Deriving _ strat irules) = [DerivClause (fmap toDerivStrategy strat) (map toType irules)]
+#else
   toDerivClauses (Hs.Deriving _ irules) = [DerivClause Nothing (map toType irules)]
-#elif MIN_VERSION_template_haskell(2,11,0)
-instance ToDerivClauses (Hs.Deriving l) where
-  toDerivClauses (Hs.Deriving _ irules) = map toType irules
+#endif
 #else
 instance ToDerivClauses (Hs.Deriving l) where
-  toDerivClauses (Hs.Deriving _ irules) = concatMap toNames irules
+#if MIN_VERSION_haskell_src_exts(1,20,0)
+  toDerivClauses (Hs.Deriving _ _ irules) =
+#else
+  toDerivClauses (Hs.Deriving _ irules) =
+#endif
+#if MIN_VERSION_template_haskell(2,11,0)
+    map toType irules
+#else
+    concatMap toNames irules
+#endif
 #endif
 
 instance ToDerivClauses a => ToDerivClauses (Maybe a) where
   toDerivClauses Nothing  = []
   toDerivClauses (Just a) = toDerivClauses a
+
+instance ToDerivClauses a => ToDerivClauses [a] where
+  toDerivClauses = concatMap toDerivClauses
+
+#if MIN_VERSION_template_haskell(2,12,0) && MIN_VERSION_haskell_src_exts(1,20,0)
+toDerivStrategy :: (Hs.DerivStrategy l) -> DerivStrategy
+toDerivStrategy (Hs.DerivStock _) = StockStrategy
+toDerivStrategy (Hs.DerivAnyclass _) = AnyclassStrategy
+toDerivStrategy (Hs.DerivNewtype _) = NewtypeStrategy
+#endif
 
 foldAppT :: Type -> [Type] -> Type
 foldAppT t ts = foldl' AppT t ts
@@ -565,7 +590,12 @@ instance ToNames a => ToNames (Maybe a) where
   toNames (Just a) = toNames a
 
 instance ToNames (Hs.Deriving l) where
-  toNames (Hs.Deriving _ irules) = concatMap toNames irules
+#if MIN_VERSION_haskell_src_exts(1,20,0)
+  toNames (Hs.Deriving _ _ irules) =
+#else
+  toNames (Hs.Deriving _ irules) =
+#endif
+    concatMap toNames irules
 instance ToNames (Hs.InstRule l) where
   toNames (Hs.IParen _ irule) = toNames irule
   toNames (Hs.IRule _ _mtvbs _mcxt mihd) = toNames mihd
