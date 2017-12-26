@@ -158,7 +158,11 @@ instance ToName (Hs.Op l) where
   toName (Hs.VarOp _ n) = toName n
   toName (Hs.ConOp _ n) = toName n
 
-
+#if MIN_VERSION_haskell_src_exts(1,20,0)
+instance ToName (Hs.MaybePromotedName l) where
+  toName (Hs.PromotedName _ n) = toName n
+  toName (Hs.UnpromotedName _ n) = toName n
+#endif
 -----------------------------------------------------------------------------
 
 -- * ToLit HsLiteral
@@ -397,7 +401,10 @@ instance ToPred (Hs.Asst l) where
     toPred a@Hs.IParam{} = noTH "toCxt" a
     toPred p = todo "toPred" p
 
-#if MIN_VERSION_template_haskell(2,12,0)
+#if MIN_VERSION_haskell_src_exts(1,20,0)
+instance ToDerivClauses (Hs.Deriving l) where
+  toDerivClauses (Hs.Deriving _ _ irules) = [DerivClause Nothing (map toType irules)]
+#elif MIN_VERSION_template_haskell(2,12,0)
 instance ToDerivClauses (Hs.Deriving l) where
   toDerivClauses (Hs.Deriving _ irules) = [DerivClause Nothing (map toType irules)]
 #elif MIN_VERSION_template_haskell(2,11,0)
@@ -411,6 +418,9 @@ instance ToDerivClauses (Hs.Deriving l) where
 instance ToDerivClauses a => ToDerivClauses (Maybe a) where
   toDerivClauses Nothing  = []
   toDerivClauses (Just a) = toDerivClauses a
+
+instance ToDerivClauses a => ToDerivClauses [a] where
+  toDerivClauses = concat . fmap toDerivClauses
 
 foldAppT :: Type -> [Type] -> Type
 foldAppT t ts = foldl' AppT t ts
@@ -564,8 +574,13 @@ instance ToNames a => ToNames (Maybe a) where
   toNames Nothing = []
   toNames (Just a) = toNames a
 
+#if MIN_VERSION_haskell_src_exts(1,20,0)
+instance ToNames (Hs.Deriving l) where
+  toNames (Hs.Deriving _ _ irules) = concatMap toNames irules
+#else
 instance ToNames (Hs.Deriving l) where
   toNames (Hs.Deriving _ irules) = concatMap toNames irules
+#endif
 instance ToNames (Hs.InstRule l) where
   toNames (Hs.IParen _ irule) = toNames irule
   toNames (Hs.IRule _ _mtvbs _mcxt mihd) = toNames mihd
