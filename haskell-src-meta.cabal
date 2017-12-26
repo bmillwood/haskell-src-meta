@@ -1,5 +1,5 @@
 name:               haskell-src-meta
-version:            0.8.0.1
+version:            0.8.1.0
 cabal-version:      >= 1.8
 build-type:         Simple
 license:            BSD3
@@ -18,7 +18,7 @@ extra-source-files: ChangeLog README.md examples/*.hs
 
 library
   build-depends:   base >= 4.6 && < 4.11,
-                   haskell-src-exts >= 1.17 && < 1.20,
+                   haskell-src-exts >= 1.17 && < 1.21,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.8,
                    template-haskell >= 2.8 && < 2.13,
@@ -41,7 +41,7 @@ test-suite unit
   build-depends:
     HUnit                >= 1.2  && < 1.7,
     base                 >= 4.5  && < 4.11,
-    haskell-src-exts     >= 1.17 && < 1.20,
+    haskell-src-exts     >= 1.17 && < 1.21,
     haskell-src-meta,
     pretty               >= 1.0  && < 1.2,
     template-haskell     >= 2.7  && < 2.13,
