@@ -663,6 +663,7 @@ conDeclToCon (Hs.RecDecl _ n fieldDecls)
 hsMatchesToFunD :: [Hs.Match l] -> Dec
 hsMatchesToFunD [] = FunD (mkName []) []   -- errorish
 hsMatchesToFunD xs@(Hs.Match _ n _ _ _ : _) = FunD (toName n) (fmap hsMatchToClause xs)
+hsMatchesToFunD xs@(Hs.InfixMatch _ _ n _ _ _ : _) = FunD (toName n) (fmap hsMatchToClause xs)
 
 
 hsMatchToClause :: Hs.Match l -> Clause
@@ -670,6 +671,10 @@ hsMatchToClause (Hs.Match _ _ ps rhs bnds) = Clause
                                                 (fmap toPat ps)
                                                 (hsRhsToBody rhs)
                                                 (toDecs bnds)
+hsMatchToClause (Hs.InfixMatch _ p _ ps rhs bnds) = Clause
+                                                        (fmap toPat (p:ps))
+                                                        (hsRhsToBody rhs)
+                                                        (toDecs bnds)
 
 
 
