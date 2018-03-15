@@ -17,11 +17,11 @@ description:        The translation from haskell-src-exts abstract syntax
 extra-source-files: ChangeLog README.md examples/*.hs
 
 library
-  build-depends:   base >= 4.6 && < 4.11,
+  build-depends:   base >= 4.6 && < 4.12,
                    haskell-src-exts >= 1.17 && < 1.21,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.8,
-                   template-haskell >= 2.8 && < 2.13,
+                   template-haskell >= 2.8 && < 2.14,
                    th-orphans >= 0.9.1 && < 0.14
 
   if impl(ghc < 7.8)
@@ -40,11 +40,11 @@ test-suite unit
 
   build-depends:
     HUnit                >= 1.2  && < 1.7,
-    base                 >= 4.5  && < 4.11,
+    base                 >= 4.5  && < 4.12,
     haskell-src-exts     >= 1.17 && < 1.21,
     haskell-src-meta,
     pretty               >= 1.0  && < 1.2,
-    template-haskell     >= 2.7  && < 2.13,
+    template-haskell     >= 2.7  && < 2.14,
     test-framework       >= 0.8  && < 0.9,
     test-framework-hunit >= 0.3  && < 0.4
 
