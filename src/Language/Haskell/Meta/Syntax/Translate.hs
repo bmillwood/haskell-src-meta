@@ -717,7 +717,7 @@ instance ToDecs (Hs.InstDecl l) where
 
 instance ToDecs (Hs.Decl l) where
   toDecs a@(Hs.TypeSig _ ns t)
-    = let xs = fmap (flip SigD (fixForall $ toType t) . toName) ns
+    = let xs = fmap (flip SigD (toType t) . toName) ns
        in xs
 
   toDecs (Hs.InfixDecl l assoc Nothing ops) =
@@ -731,17 +731,6 @@ instance ToDecs (Hs.Decl l) where
       Hs.AssocRight _ -> InfixR
 
   toDecs a = [toDec a]
-
-collectVars e = case e of
-  VarT n -> [PlainTV n]
-  AppT t1 t2 -> nub $ collectVars t1 ++ collectVars t2
-  ForallT ns _ t -> collectVars t \\ ns
-  _          -> []
-
-fixForall t = case vs of
-  [] -> t
-  _  -> ForallT vs [] t
-  where vs = collectVars t
 
 instance ToDecs a => ToDecs [a] where
   toDecs a = concatMap toDecs a
