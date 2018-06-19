@@ -132,14 +132,11 @@ instance ToName (Hs.Name l) where
   toName (Hs.Symbol _ s) = toName s
 
 instance ToName (Hs.SpecialCon l) where
-  toName (Hs.UnitCon _) = '()
-  toName (Hs.ListCon _) = '[]
+  toName (Hs.UnitCon _) = mkName "()"
+  toName (Hs.ListCon _) = ''[] -- Parser only uses this in types
   toName (Hs.FunCon _)  = ''(->)
-  toName (Hs.TupleCon _ _ n)
-    | n<2 = '()
-    | otherwise =
-      let x = maybe [] (++".") (nameModule '(,))
-      in mkName . concat $ x : ["(",replicate (n-1) ',',")"]
+  toName (Hs.TupleCon _ _ n) = 
+     mkName $ concat ["(",replicate (n-1) ',',")"]
   toName (Hs.Cons _)    = '(:)
 
 
