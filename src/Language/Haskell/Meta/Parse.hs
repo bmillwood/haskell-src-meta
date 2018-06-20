@@ -68,14 +68,10 @@ parseDecs  = either Left (Right . toDecs) . parseHsDecls
 {-# DEPRECATED myDefaultParseMode, myDefaultExtensions
   "The provided ParseModes aren't very meaningful, use your own instead" #-}
 myDefaultParseMode :: ParseMode
-myDefaultParseMode = ParseMode
+myDefaultParseMode = defaultParseMode
   {parseFilename = []
   ,baseLanguage = Haskell2010
   ,extensions = map EnableExtension myDefaultExtensions
-  ,ignoreLinePragmas = False
-  ,ignoreLanguagePragmas = False
-  ,fixities = Nothing
-  ,ignoreFunctionArity = False
   }
 
 myDefaultExtensions :: [KnownExtension]

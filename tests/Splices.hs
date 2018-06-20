@@ -2,7 +2,6 @@
 -- | Tests stuff mostly by just compiling correctly
 import Language.Haskell.Meta
 
-
 ----- Testing names -----
 
 -- Test that the unit constructor works
@@ -23,8 +22,11 @@ $(either error return $ parseDecs $ unlines
    ,"instance MyClass Bool where mymethod a b = (a,b)"
    ])
 
+
+
 -- Just to check that it works as intended
 main = do
+  -9 <- return $(either error return $ parseExp "-3^2") :: IO Int
   () <- unit
   [] <- return (nilp [])
   (1,2) <- return pair
