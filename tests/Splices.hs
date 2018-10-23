@@ -10,7 +10,7 @@ $(either error return $ parseDecs
 
 -- Testing that the [] constructor works in types, 
 $(either error return $ parseDecs 
-      "nilp :: [a] -> ([] a)\nnilp [] = []")
+      "nilp :: forall a. [a] -> ([] a)\nnilp [] = []")
 
 $(either error return $ parseDecs 
       "pair :: (,) Int Int\npair = (,) 1 2")
@@ -18,7 +18,7 @@ $(either error return $ parseDecs
 
 ----- Testing classes and instances -----
 $(either error return $ parseDecs $ unlines
-   ["class MyClass a where mymethod :: a -> b -> (a,b)"
+   ["class MyClass a where mymethod :: forall b. a -> b -> (a,b)"
    ,"instance MyClass Bool where mymethod a b = (a,b)"
    ])
 
