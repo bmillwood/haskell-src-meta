@@ -3,11 +3,11 @@
 module Language.Haskell.Meta.QQ.SKI (SKI(..),ski) where
 
 import Language.Haskell.Meta (parseExp, parsePat)
-import Language.Haskell.TH.Lib
+import Language.Haskell.TH.Lib hiding (parensP)
 import Language.Haskell.TH.Ppr
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
-import Language.Haskell.Meta.Utils (cleanNames, ppDoc, unQ)
+import Language.Haskell.Meta.Utils (cleanNames, ppDoc, unsafeRunQ)
 import Text.ParserCombinators.ReadP
 import Data.Typeable(Typeable)
 import Data.Generics(Data)
@@ -26,13 +26,13 @@ eval :: SKI -> SKI
 eval (I :$ x)               = eval x
 eval ((K :$ x) :$ y)        = eval x
 eval (((S :$ x) :$ y :$ z)) = eval (eval (x :$ z) :$ eval (y :$ z))
-eval (E e :$ E e')          = E (unQ[|$(return e) $(return e')|])
+eval (E e :$ E e')          = E (unsafeRunQ[|$(return e) $(return e')|])
 eval (x :$ y)               = eval0 ((eval x) :$ (eval y))
 eval  x                     = x
 eval0 (I :$ x)               = eval x
 eval0 ((K :$ x) :$ y)        = eval x
 eval0 (((S :$ x) :$ y :$ z)) = eval (eval (x :$ z) :$ eval (y :$ z))
-eval0 (E e :$ E e')          = E (unQ[|$(return e) $(return e')|])
+eval0 (E e :$ E e')          = E (unsafeRunQ[|$(return e) $(return e')|])
 eval0  x                     = x
 
 ski :: QuasiQuoter
@@ -150,6 +150,3 @@ q x = x $ (c $ k) $ k $ k $ s
        c = s $ (b $ b $ s) $ k $ k
        b = s $ (k $ s) $ k
 -}
-
-
-
