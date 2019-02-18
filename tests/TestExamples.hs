@@ -12,7 +12,7 @@ import SKI (SKI(S, K, I, (:$)))
 -- Very dumb test framework
 shouldBe :: (Show a, Eq a) => a -> a -> IO ()
 actual `shouldBe` expected = case actual == expected of
-  True -> pure ()
+  True -> return ()
   False -> do
     putStr "Expected: "
     print expected
