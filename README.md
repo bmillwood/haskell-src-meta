@@ -11,3 +11,5 @@ package, keeping it up to date with the latest versions of TH etc.
 I don't really view this as "my" package so if you want write access to
 the github repository, or you think you could do a better job as
 maintainer, just ask.
+
+The above was written by Ben Millwood, but I (Dan Burton) share the same sentiment.
