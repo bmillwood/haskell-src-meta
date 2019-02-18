@@ -41,7 +41,7 @@ test-suite unit
   build-depends:
     HUnit                >= 1.2  && < 1.7,
     base                 >= 4.5  && < 5,
-    haskell-src-exts     >= 1.17 && < 1.21,
+    haskell-src-exts     >= 1.17 && < 1.22,
     haskell-src-meta,
     pretty               >= 1.0  && < 1.2,
     template-haskell     >= 2.7  && < 2.15,
