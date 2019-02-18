@@ -2,7 +2,7 @@
 
 -- | Eat your face!
 
-module Language.Haskell.Meta.QQ.Hs (hs, pat) where
+module Hs (hs, pat) where
 
 import Language.Haskell.Meta (parseExp, parsePat)
 import Language.Haskell.Meta.Utils (pretty)

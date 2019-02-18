@@ -57,6 +57,25 @@ test-suite splices
     base,
     haskell-src-meta
 
+test-suite examples
+  type:             exitcode-stdio-1.0
+  hs-source-dirs:   examples, tests
+  main-is:          TestExamples.hs
+
+  build-depends:
+    base,
+    containers,
+    haskell-src-meta,
+    syb,
+    template-haskell,
+    pretty
+
+  other-modules:
+    BF,
+    Hs,
+    HsHere,
+    SKI
+
 source-repository head
   type:     git
   location: git://github.com/bmillwood/haskell-src-meta.git

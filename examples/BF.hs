@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, TemplateHaskell #-}
 
-module Language.Haskell.Meta.QQ.BF (
-   bf,bf2,bfHelloWorld
+module BF (
+   bf,bf2,bfHelloWorld,eval_,parse
 ) where
 
 import Language.Haskell.Meta (parsePat)
@@ -174,9 +174,3 @@ parse s = let p n s = case go n [] s of
         go !n acc (c  :cs) = (n+1, [Error ("go error: char "++show n
                                     ++" illegal character: "++show c)], [])
 -}
-
-
-
-
-
-

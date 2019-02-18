@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, PatternGuards, TemplateHaskell #-}
 
-module Language.Haskell.Meta.QQ.SKI (SKI(..),ski) where
+module SKI (SKI(..),ski,parse) where
 
 import Language.Haskell.Meta (parseExp, parsePat)
 import Language.Haskell.TH.Lib hiding (parensP)

@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveDataTypeable, PatternGuards, TemplateHaskell #-}
 
-module Language.Haskell.Meta.QQ.HsHere (here) where
+module HsHere (here) where
 
 import Language.Haskell.Meta (parseExp, parsePat)
 import Language.Haskell.TH.Lib
@@ -20,7 +20,7 @@ data Here
 
 -- | Example:
 --
--- > a x = [$here| random "text" $(x + 1)
+-- > a x = [here| random "text" $(x + 1)
 -- >  something else|]
 --
 -- Is like:
@@ -28,7 +28,9 @@ data Here
 -- > a x = " random \"text\" "++ show (x + 1) ++"\n  something else"
 here :: QuasiQuoter
 here = QuasiQuoter
-        {quoteExp = hereExpQ
+        {quoteType = fail "The here quoter is only for expressions and patterns"
+        ,quoteDec = fail "The here quoter is only for expressions and patterns"
+        ,quoteExp = hereExpQ
         ,quotePat = herePatQ}
 
 instance Lift Here
@@ -111,4 +113,3 @@ oparenP  = char '('
 cparenP  = char ')'
 obrackP  = char '['
 cbrackP  = char ']'
-
