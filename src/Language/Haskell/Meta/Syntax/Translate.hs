@@ -314,11 +314,13 @@ instance ToName TyVarBndr where
   toName (PlainTV n) = n
   toName (KindedTV n _) = n
 
+#if !MIN_VERSION_haskell_src_exts(1,21,0)
 instance ToType (Hs.Kind l) where
   toType (Hs.KindStar _) = StarT
   toType (Hs.KindFn _ k1 k2) = toType k1 .->. toType k2
   toType (Hs.KindParen _ kp) = toType kp
   toType (Hs.KindVar _ n) = VarT (toName n)
+#endif
 
 toKind :: Hs.Kind l -> Kind
 toKind = toType
