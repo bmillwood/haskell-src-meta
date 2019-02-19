@@ -1,4 +1,4 @@
-The `haskell-src-meta` Package  [![Hackage](https://img.shields.io/hackage/v/haskell-src-meta.svg)](https://hackage.haskell.org/package/haskell-src-meta) [![Build Status](https://travis-ci.org/mainland/haskell-src-meta.svg)](https://travis-ci.org/mainland/haskell-src-meta)
+The `haskell-src-meta` Package  [![Hackage](https://img.shields.io/hackage/v/haskell-src-meta.svg)](https://hackage.haskell.org/package/haskell-src-meta) [![Build Status](https://travis-ci.org/DanBurton/haskell-src-meta.svg)](https://travis-ci.org/DanBurton/haskell-src-meta)
 ==================
 
 `haskell-src-meta` is a package originally by Matt Morrow for converting a
@@ -12,4 +12,5 @@ I don't really view this as "my" package so if you want write access to
 the github repository, or you think you could do a better job as
 maintainer, just ask.
 
-The above was written by Ben Millwood, but I (Dan Burton) share the same sentiment.
+The above was written by Ben Millwood,
+but I (Dan Burton) share the same sentiment.
