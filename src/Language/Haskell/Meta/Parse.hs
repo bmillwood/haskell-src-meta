@@ -13,11 +13,13 @@ module Language.Haskell.Meta.Parse (
   parseExp,
   parseType,
   parseDecs,
+  parseDecsWithMode,
   myDefaultParseMode,
   myDefaultExtensions,
   parseResultToEither,
   parseHsModule,
   parseHsDecls,
+  parseHsDeclsWithMode,
   parseHsType,
   parseHsExp,
   parseHsPat,
@@ -63,6 +65,10 @@ parseType = either Left (Right . toType) . parseHsType
 parseDecs :: String -> Either String [Dec]
 parseDecs  = either Left (Right . toDecs) . parseHsDecls
 
+parseDecsWithMode :: ParseMode -> String -> Either String [Dec]
+parseDecsWithMode parseMode = either Left (Right . toDecs)
+  . parseHsDeclsWithMode parseMode
+
 -----------------------------------------------------------------------------
 
 {-# DEPRECATED myDefaultParseMode, myDefaultExtensions
@@ -98,6 +104,10 @@ parseHsModule = parseResultToEither . parseModuleWithMode myDefaultParseMode
 parseHsDecls :: String -> Either String [Hs.Decl Hs.SrcSpanInfo]
 parseHsDecls = either Left (Right . moduleDecls)
   . parseResultToEither . parseModuleWithMode myDefaultParseMode
+
+parseHsDeclsWithMode :: ParseMode -> String -> Either String [Hs.Decl Hs.SrcSpanInfo]
+parseHsDeclsWithMode parseMode = either Left (Right . moduleDecls)
+  . parseResultToEither . parseModuleWithMode parseMode
 
 
 parseHsType :: String -> Either String (Hs.Type Hs.SrcSpanInfo)

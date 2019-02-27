@@ -135,7 +135,7 @@ instance ToName (Hs.SpecialCon l) where
   toName (Hs.UnitCon _) = mkName "()"
   toName (Hs.ListCon _) = ''[] -- Parser only uses this in types
   toName (Hs.FunCon _)  = ''(->)
-  toName (Hs.TupleCon _ _ n) = 
+  toName (Hs.TupleCon _ _ n) =
      mkName $ concat ["(",replicate (n-1) ',',")"]
   toName (Hs.Cons _)    = '(:)
 
@@ -236,6 +236,7 @@ instance ToExp (Hs.Exp l) where
   toExp (Hs.Con _ n)                 = ConE (toName n)
   toExp (Hs.Lit _ l)                 = LitE (toLit l)
   toExp (Hs.InfixApp _ e o f)        = UInfixE (toExp e) (toExp o) (toExp f)
+  toExp (Hs.App _ e (Hs.TypeApp _ t)) = AppTypeE (toExp e) (toType t)
   toExp (Hs.App _ e f)               = AppE (toExp e) (toExp f)
   toExp (Hs.NegApp _ e)              = AppE (VarE 'negate) (toExp e)
   toExp (Hs.Lambda _ ps e)         = LamE (fmap toPat ps) (toExp e)

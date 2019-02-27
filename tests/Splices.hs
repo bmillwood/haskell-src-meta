@@ -1,50 +1,56 @@
 {-# LANGUAGE CPP, TemplateHaskell #-}
 -- | Tests stuff mostly by just compiling correctly
-import Language.Haskell.Meta
+import qualified Language.Haskell.Exts.Extension as Extension
+import qualified Language.Haskell.Exts.Parser as Parser
+import qualified Language.Haskell.Meta as Meta
 
 ----- Testing names -----
 
 -- Test that the unit constructor works
-$(either error return $ parseDecs
+$(either error return $ Meta.parseDecs
       "unit :: IO ()\nunit = return ()")
 
 -- Testing that the [] constructor works in types,
 #if MIN_VERSION_base(4,9,0)
-$(either error return $ parseDecs
+$(either error return $ Meta.parseDecs
       "nilp :: [a] -> ([] a)\nnilp [] = []")
 #else
 -- CPP Note: Apparently ghc < 7 doesn't parse this correctly w/o the forall.
 -- https://github.com/DanBurton/haskell-src-meta/issues/2
-$(either error return $ parseDecs
+$(either error return $ Meta.parseDecs
       "nilp :: forall a. [a] -> ([] a)\nnilp [] = []")
 #endif
 
-$(either error return $ parseDecs
+$(either error return $ Meta.parseDecs
       "pair :: (,) Int Int\npair = (,) 1 2")
 
 
 ----- Testing classes and instances -----
 #if MIN_VERSION_base(4,9,0)
-$(either error return $ parseDecs $ unlines
+$(either error return $ Meta.parseDecs $ unlines
    ["class MyClass a where mymethod :: a -> b -> (a,b)"
    ,"instance MyClass Bool where mymethod a b = (a,b)"
    ])
 #else
 -- CPP Note: Apparently ghc < 7 doesn't parse this correctly w/o the forall.
 -- https://github.com/DanBurton/haskell-src-meta/issues/2
-$(either error return $ parseDecs $ unlines
+$(either error return $ Meta.parseDecs $ unlines
    ["class MyClass a where mymethod :: forall b. a -> b -> (a,b)"
    ,"instance MyClass Bool where mymethod a b = (a,b)"
    ])
 #endif
 
+$(either error return $ Meta.parseDecsWithMode (Parser.defaultParseMode { Parser.extensions = [Extension.EnableExtension Extension.TypeApplications] }) $ unlines
+   ["tenStr :: String"
+   ,"tenStr = show @Int 10"])
 
 
 -- Just to check that it works as intended
 main = do
-  -9 <- return $(either error return $ parseExp "-3^2") :: IO Int
+  -9 <- return $(either error return $ Meta.parseExp "-3^2") :: IO Int
   () <- unit
   [] <- return (nilp [])
   (1,2) <- return pair
   (True,1) <- return $ mymethod True 1
+  "10" <- return tenStr
   return ()

@@ -55,6 +55,7 @@ test-suite splices
 
   build-depends:
     base,
+    haskell-src-exts,
     haskell-src-meta
 
 test-suite examples
