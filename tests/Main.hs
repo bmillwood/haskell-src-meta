@@ -3,11 +3,7 @@
 module Main where
 
 import Language.Haskell.Meta.Parse
-#if MIN_VERSION_haskell_src_exts(1,18,0)
 import qualified Language.Haskell.Exts as Exts
-#else
-import qualified Language.Haskell.Exts.Annotated as Exts
-#endif
 import qualified Language.Haskell.Exts.Extension as Extension
 import qualified Language.Haskell.Exts.Parser as Parser
 import qualified Language.Haskell.TH as TH
@@ -20,7 +16,9 @@ main = defaultMain tests
 
 tests :: [Test]
 tests = [ derivingClausesTest
+#if MIN_VERSION_template_haskell(2,12,0)
         , typeAppTest
+#endif
         ]
 
 derivingClausesTest :: Test
@@ -31,7 +29,7 @@ typeAppMode :: Exts.ParseMode
 typeAppMode = Parser.defaultParseMode { Parser.extensions = [Extension.EnableExtension Extension.TypeApplications] }
 
 typeAppTest :: Test
-typeAppTest = testCase "Type app preserved, or something" $
+typeAppTest = testCase "Type app preserved" $
   roundTripDeclsWithMode typeAppMode "tenStr = show @Int 10"
 
 roundTripDecls :: String -> Assertion

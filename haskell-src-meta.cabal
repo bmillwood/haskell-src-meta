@@ -56,7 +56,8 @@ test-suite splices
   build-depends:
     base,
     haskell-src-exts,
-    haskell-src-meta
+    haskell-src-meta,
+    template-haskell
 
 test-suite examples
   type:             exitcode-stdio-1.0
@@ -67,9 +68,9 @@ test-suite examples
     base,
     containers,
     haskell-src-meta,
+    pretty,
     syb,
-    template-haskell,
-    pretty
+    template-haskell
 
   other-modules:
     BF,

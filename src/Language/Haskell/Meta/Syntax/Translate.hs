@@ -236,7 +236,11 @@ instance ToExp (Hs.Exp l) where
   toExp (Hs.Con _ n)                 = ConE (toName n)
   toExp (Hs.Lit _ l)                 = LitE (toLit l)
   toExp (Hs.InfixApp _ e o f)        = UInfixE (toExp e) (toExp o) (toExp f)
+#if MIN_VERSION_template_haskell(2,12,0)
   toExp (Hs.App _ e (Hs.TypeApp _ t)) = AppTypeE (toExp e) (toType t)
+#else
+  toExp (Hs.App _ e aTypeApp@Hs.TypeApp{}) = noThYet "toExp" "2.12.0" aTypeApp
+#endif
   toExp (Hs.App _ e f)               = AppE (toExp e) (toExp f)
   toExp (Hs.NegApp _ e)              = AppE (VarE 'negate) (toExp e)
   toExp (Hs.Lambda _ ps e)         = LamE (fmap toPat ps) (toExp e)

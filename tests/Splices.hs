@@ -40,9 +40,16 @@ $(either error return $ Meta.parseDecs $ unlines
    ])
 #endif
 
+#if MIN_VERSION_template_haskell(2,12,0)
 $(either error return $ Meta.parseDecsWithMode (Parser.defaultParseMode { Parser.extensions = [Extension.EnableExtension Extension.TypeApplications] }) $ unlines
    ["tenStr :: String"
    ,"tenStr = show @Int 10"])
+#else
+-- Type Application not supported by template-haskell < 2.12
+$(either error return $ Meta.parseDecs $ unlines
+   ["tenStr :: String"
+   ,"tenStr = show (10 :: Int)"])
+#endif
 
 
 -- Just to check that it works as intended
