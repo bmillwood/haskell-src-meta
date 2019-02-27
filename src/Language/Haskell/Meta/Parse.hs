@@ -65,6 +65,7 @@ parseType = either Left (Right . toType) . parseHsType
 parseDecs :: String -> Either String [Dec]
 parseDecs  = either Left (Right . toDecs) . parseHsDecls
 
+-- | @since 0.8.2
 parseDecsWithMode :: ParseMode -> String -> Either String [Dec]
 parseDecsWithMode parseMode = either Left (Right . toDecs)
   . parseHsDeclsWithMode parseMode
@@ -105,6 +106,7 @@ parseHsDecls :: String -> Either String [Hs.Decl Hs.SrcSpanInfo]
 parseHsDecls = either Left (Right . moduleDecls)
   . parseResultToEither . parseModuleWithMode myDefaultParseMode
 
+-- | @since 0.8.2
 parseHsDeclsWithMode :: ParseMode -> String -> Either String [Hs.Decl Hs.SrcSpanInfo]
 parseHsDeclsWithMode parseMode = either Left (Right . moduleDecls)
   . parseResultToEither . parseModuleWithMode parseMode
