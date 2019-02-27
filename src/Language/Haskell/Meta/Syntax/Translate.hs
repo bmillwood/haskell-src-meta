@@ -239,7 +239,7 @@ instance ToExp (Hs.Exp l) where
 #if MIN_VERSION_template_haskell(2,12,0)
   toExp (Hs.App _ e (Hs.TypeApp _ t)) = AppTypeE (toExp e) (toType t)
 #else
-  toExp (Hs.App _ e aTypeApp@Hs.TypeApp{}) = noThYet "toExp" "2.12.0" aTypeApp
+  toExp (Hs.App _ e aTypeApp@Hs.TypeApp{}) = noTHyet "toExp" "2.12.0" aTypeApp
 #endif
   toExp (Hs.App _ e f)               = AppE (toExp e) (toExp f)
   toExp (Hs.NegApp _ e)              = AppE (VarE 'negate) (toExp e)
