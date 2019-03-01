@@ -35,15 +35,8 @@ import Language.Haskell.TH.Syntax hiding (Extension(..))
 import Language.Haskell.TH.Syntax
 #endif
 import Language.Haskell.Meta.Syntax.Translate
-#if MIN_VERSION_haskell_src_exts(1,18,0)
 import qualified Language.Haskell.Exts.Syntax as Hs
-import Language.Haskell.Exts.Fixity as Fix
 import Language.Haskell.Exts.Parser hiding (parseExp, parseType, parsePat)
-#else
-import qualified Language.Haskell.Exts.Annotated.Syntax as Hs
-import Language.Haskell.Exts.Annotated.Fixity as Fix
-import Language.Haskell.Exts.Annotated.Parser hiding (parseExp, parseType, parsePat)
-#endif
 import qualified Language.Haskell.Exts.SrcLoc as Hs
 import Language.Haskell.Exts.Extension
 import Language.Haskell.Exts.Pretty
@@ -128,6 +121,10 @@ pprHsModule = prettyPrint
 
 moduleDecls :: Hs.Module Hs.SrcSpanInfo -> [Hs.Decl Hs.SrcSpanInfo]
 moduleDecls (Hs.Module _ _ _ _ x) = x
+moduleDecls m = todo "" m
+-- TODO
+--             (Hs.XmlPage _ _ _ _ _ _ _)
+--          (Hs.XmlHybrid _ _ _ _ _ _ _ _ _)
 
 -- mkModule :: String -> Hs.Module
 -- mkModule s = Hs.Module undefined (Hs.ModuleName s) Nothing [] []
@@ -141,6 +138,7 @@ emptyHsModule n =
         []
         [])
 
+noSrcSpanInfo :: Hs.SrcSpanInfo
 noSrcSpanInfo = Hs.noInfoSpan (Hs.mkSrcSpan Hs.noLoc Hs.noLoc)
 
 {-

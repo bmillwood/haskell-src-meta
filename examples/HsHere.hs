@@ -1,3 +1,8 @@
+-- TODO: knock out these warnings
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-unused-matches #-}
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
+
 {-# LANGUAGE DeriveDataTypeable, PatternGuards, TemplateHaskell #-}
 
 module HsHere (here) where
@@ -83,7 +88,8 @@ oneP s
   | c:s <- s        = do skip 1
                          (TextH . (c:))
                           `fmap` munch (not.(`elem`"\\$"))
-  where go _ acc  []         = return (TextH (reverse acc))
+  where go :: Int -> String -> String -> ReadP Here
+        go _ acc  []         = return (TextH (reverse acc))
         go 1 []  (')':_) = skip 1 >> return (TextH "$()")
         go 1 acc (')':_) = do skip (1 + length acc)
                               let s = reverse acc
@@ -107,8 +113,10 @@ lexemeP :: ReadP a -> ReadP a
 lexemeP p = p >>= \x -> skipSpaces >> return x
 nestedP :: (ReadP a -> ReadP a) -> (ReadP a -> ReadP a)
 nestedP nest p = p <++ nest (skipSpaces >> nestedP nest p)
+parensP, bracksP :: ReadP a -> ReadP a
 parensP  = between oparenP cparenP
 bracksP  = between oparenP cparenP
+oparenP, cparenP, obrackP, cbrackP :: ReadP Char
 oparenP  = char '('
 cparenP  = char ')'
 obrackP  = char '['

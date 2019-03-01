@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-} -- TODO
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell, RankNTypes, StandaloneDeriving,
   DeriveDataTypeable, PatternGuards, FlexibleContexts, FlexibleInstances,
@@ -9,14 +10,12 @@
 module Language.Haskell.Meta.Utils where
 
 import Data.List (findIndex)
-import Data.Typeable
 import Data.Generics hiding(Fixity)
 import Language.Haskell.Meta
 import System.IO.Unsafe(unsafePerformIO)
 import Language.Haskell.Exts.Pretty(prettyPrint)
-import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
-import Language.Haskell.TH.Lib
+import Language.Haskell.TH.Lib hiding (cxt)
 import Language.Haskell.TH.Ppr
 import Text.PrettyPrint
 import Control.Monad
@@ -86,8 +85,8 @@ nameToRawCodeStr n =
       Just TcClsName -> "''"++s
       _ -> concat ["(mkName \"", filter (/='"') s, "\")"]
   where showNameParens :: Name -> String
-        showNameParens n =
-          let nb = nameBase n
+        showNameParens n' =
+          let nb = nameBase n'
           in case nb of
             (c:_) | isSym c -> concat ["(",nb,")"]
             _  -> nb
@@ -130,6 +129,8 @@ myNames = let xs = fmap (:[]) ['a'..'z']
            in fmap mkName (concat ys)
 
 -- | Generalisation of renameTs
+renameThings :: (t1 -> t2 -> a1 -> (a2, t1, t2))
+             -> t1 -> t2 -> [a2] -> [a1] -> ([a2], t1, t2)
 renameThings _ env new acc [] = (reverse acc, env, new)
 renameThings f env new acc (t:ts) =
   let (t', env', new') = f env new t
@@ -146,7 +147,7 @@ renameTs = renameThings renameT
 -- the fresh names list, and add this translation to the returned list.
 -- The fresh names list should be infinite; myNames is a good example.
 renameT :: [(Name, Name)] -> [Name] -> Type -> (Type, [(Name,Name)], [Name])
-renameT env [] _ = error "renameT: ran out of names!"
+renameT _env [] _ = error "renameT: ran out of names!"
 renameT env (x:new) (VarT n)
  | Just n' <- lookup n env = (VarT n',env,x:new)
  | otherwise = (VarT x, (n,x):env, new)
@@ -165,8 +166,8 @@ renameT env new (ForallT ns cxt t) =
     in (ForallT ns'' cxt' t', env4, new4)
   where
     unVarT (VarT n) = PlainTV n
+    unVarT ty = error $ "renameT: unVarT: TODO for" ++ show ty
     renamePreds = renameThings renamePred
-
 #if MIN_VERSION_template_haskell(2,10,0)
     renamePred = renameT
 #else
@@ -179,6 +180,7 @@ renameT env new (ForallT ns cxt t) =
         (t2', env2, new2) = renameT env1 new1 t2
       in (EqualP t1' t2', env2, new2)
 #endif
+renameT _ _ t = error $ "renameT: TODO for " ++ show t
 
 -- | Remove qualification, etc.
 normaliseName :: Name -> Name
@@ -221,6 +223,10 @@ conTypes (NormalC _ sts) = fmap strictTypeTy sts
 conTypes (RecC    _ vts) = fmap varStrictTypeTy vts
 conTypes (InfixC t _ t') = fmap strictTypeTy [t,t']
 conTypes (ForallC _ _ c) = conTypes c
+conTypes c = error $ "conTypes: TODO for " ++ show c
+-- TODO
+            -- (GadtC _ _ _)
+            -- (RecGadtC _ _ _)
 
 
 conToConType :: Type -> Con -> Type
@@ -315,6 +321,10 @@ conName (RecC n _) = n
 conName (NormalC n _) = n
 conName (InfixC _ n _) = n
 conName (ForallC _ _ con) = conName con
+conName c = error $ "conName: TODO for" ++ show c
+-- TODO
+            -- (GadtC _ _ _)
+            -- (RecGadtC _ _ _)
 
 recCName :: Con -> Maybe Name
 recCName (RecC n _) = Just n
@@ -330,9 +340,9 @@ dataDCons _ = []
 
 fromDataConI :: Info -> Q (Maybe Exp)
 #if MIN_VERSION_template_haskell(2,11,0)
-fromDataConI (DataConI dConN ty tyConN) =
+fromDataConI (DataConI dConN ty _tyConN) =
 #else
-fromDataConI (DataConI dConN ty tyConN fxty) =
+fromDataConI (DataConI dConN ty _tyConN fxty) =
 #endif
   let n = arityT ty
   in replicateM n (newName "a")

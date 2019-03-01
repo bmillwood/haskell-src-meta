@@ -1,3 +1,7 @@
+-- TODO: knock out these warnings
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-unused-matches #-}
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# LANGUAGE BangPatterns, TemplateHaskell #-}
 
 module BF (
@@ -13,12 +17,29 @@ import Data.Char
 import Data.IntMap(IntMap)
 import qualified Data.IntMap as IM
 
+-- TODO: narrow type & move to shared module
+quoteTypeNotImplemented :: String -> a
+quoteTypeNotImplemented = fail "type quoter not implemented"
+
+-- TODO: narrow type & move to shared module
+quoteDecNotImplemented :: String -> a
+quoteDecNotImplemented = fail "dec quoter not implemented"
 
 bf :: QuasiQuoter
-bf = QuasiQuoter { quoteExp = bfExpQ, quotePat = bfPatQ }
+bf = QuasiQuoter
+  { quoteExp = bfExpQ
+  , quotePat = bfPatQ
+  , quoteType = quoteTypeNotImplemented
+  , quoteDec = quoteDecNotImplemented
+  }
 
 bf2 :: QuasiQuoter
-bf2 = QuasiQuoter { quoteExp = bf2ExpQ, quotePat = bfPatQ }
+bf2 = QuasiQuoter
+  { quoteExp = bf2ExpQ
+  , quotePat = bfPatQ
+  , quoteType = quoteTypeNotImplemented
+  , quoteDec = quoteDecNotImplemented
+  }
 
 bf2ExpQ :: String -> ExpQ
 bf2ExpQ s = [|eval (parse s)|]
@@ -133,7 +154,7 @@ parse s = go 0 [] s (\_ xs _ -> xs)
         go !n acc (c  :cs) k = go n acc cs k
 
 
-
+test0 :: IO [Bf]
 test0 = do
   a <- readFile "prime.bf"
   return (parse a)

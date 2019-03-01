@@ -10,6 +10,14 @@ import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
+-- TODO: narrow type & move to shared module
+quoteTypeNotImplemented :: String -> a
+quoteTypeNotImplemented = fail "type quoter not implemented"
+
+-- TODO: narrow type & move to shared module
+quoteDecNotImplemented :: String -> a
+quoteDecNotImplemented = fail "dec quoter not implemented"
+
 -- |
 -- > ghci> [$hs|\x -> (x,x)|] 42
 -- > (42,42)
@@ -19,6 +27,8 @@ hs :: QuasiQuoter
 hs = QuasiQuoter
       { quoteExp = either fail transformE . parseExp
       , quotePat = either fail transformP . parsePat
+      , quoteType = quoteTypeNotImplemented
+      , quoteDec = quoteDecNotImplemented
       }
 
 transformE :: Exp -> ExpQ
@@ -33,4 +43,6 @@ pat = QuasiQuoter
         , quotePat = \s -> case parseExp s of
                 Left err -> fail err
                 Right e -> either fail return (parsePat . pretty $ e)
+      , quoteType = quoteTypeNotImplemented
+      , quoteDec = quoteDecNotImplemented
         }

@@ -1,7 +1,5 @@
 {-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
 
-import Control.Monad (when)
-
 import qualified BF
 import qualified Hs
 import qualified HsHere
@@ -27,7 +25,7 @@ a x = [HsHere.here| random "text" $(x + 1)
 
 hereTest :: IO ()
 hereTest = do
- a 3 `shouldBe` (" random \"text\" "++ show (3 + 1) ++"\n  something else")
+ a 3 `shouldBe` (" random \"text\" "++ show (3 + 1 :: Int) ++"\n  something else")
 
 -- TODO: better test exercising the bf quasiquoter
 
@@ -37,7 +35,7 @@ bfTest = do
 
 hsTest :: IO ()
 hsTest = do
-  (\ [Hs.hs|a@(x,_)|] -> [Hs.hs|(a,x)|]) (42,88) `shouldBe` ((42,88),42)
+  (\ [Hs.hs|b@(x,_)|] -> [Hs.hs|(b,x)|]) (42 :: Int,88 :: Int) `shouldBe` ((42,88),42)
 
 -- TODO: better test exercising the ski quasiquoter
 

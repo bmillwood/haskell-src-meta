@@ -1,3 +1,10 @@
+-- TODO: knock out these warnings
+{-# OPTIONS_GHC -fno-warn-name-shadowing #-}
+{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
+{-# OPTIONS_GHC -fno-warn-unused-matches #-}
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
 {-# LANGUAGE DeriveDataTypeable, PatternGuards, TemplateHaskell #-}
 
 module SKI (SKI(..),ski,parse) where
@@ -12,6 +19,12 @@ import Text.ParserCombinators.ReadP
 import Data.Typeable(Typeable)
 import Data.Generics(Data)
 import Text.PrettyPrint(render)
+
+
+quoteTypeNotImplemented = fail "type quoter not implemented"
+
+quoteDecNotImplemented = fail "dec quoter not implemented"
+
 
 data SKI = S | K | I | E Exp | SKI :$ SKI
   deriving (Eq,Data,Typeable)
@@ -37,8 +50,11 @@ eval0  x                     = x
 
 ski :: QuasiQuoter
 ski = QuasiQuoter
-        {quoteExp = skiExpQ
-        ,quotePat = skiPatQ}
+  { quoteExp = skiExpQ
+  , quotePat = skiPatQ
+  , quoteType = quoteTypeNotImplemented
+  , quoteDec = quoteDecNotImplemented
+  }
 
 instance Lift SKI where
   lift = liftSKI

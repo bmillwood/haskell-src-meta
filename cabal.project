@@ -1,0 +1,3 @@
+packages: haskell-src-meta.cabal
+package haskell-src-meta
+  ghc-options: -Wall -Wcompat -Werror

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# LANGUAGE CPP, TemplateHaskell #-}
 -- | Tests stuff mostly by just compiling correctly
 import qualified Language.Haskell.Exts.Extension as Extension
@@ -53,8 +54,9 @@ $(either error return $ Meta.parseDecs $ unlines
 
 
 -- Just to check that it works as intended
+main :: IO ()
 main = do
-  -9 <- return $(either error return $ Meta.parseExp "-3^2") :: IO Int
+  -9 <- return $(either error return $ Meta.parseExp "-3^2 :: Int") :: IO Int
   () <- unit
   [] <- return (nilp [])
   (1,2) <- return pair
