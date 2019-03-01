@@ -1,11 +1,10 @@
 -- TODO: knock out these warnings
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
-{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# LANGUAGE BangPatterns, TemplateHaskell #-}
 
 module BF (
-   bf,bf2,bfHelloWorld,eval_,parse
+   bf,bf2,bfHelloWorld,eval_,parse, exec, test0
 ) where
 
 import Language.Haskell.Meta (parsePat)

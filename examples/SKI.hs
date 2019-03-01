@@ -1,13 +1,19 @@
 -- TODO: knock out these warnings
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
-{-# OPTIONS_GHC -fno-warn-unused-top-binds #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
 {-# LANGUAGE DeriveDataTypeable, PatternGuards, TemplateHaskell #-}
 
-module SKI (SKI(..),ski,parse) where
+module SKI
+  ( SKI(..)
+  , ski
+  , parse
+  , bracksP
+  , obrackP
+  , cbrackP
+  ) where
 
 import Language.Haskell.Meta (parseExp, parsePat)
 import Language.Haskell.TH.Lib hiding (parensP)
