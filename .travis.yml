@@ -63,12 +63,12 @@ before_install:
   - unset CC
   - ROOTDIR=$(pwd)
   - mkdir -p $HOME/.local/bin
-  - "PATH=/opt/ghc/bin:/opt/ghc-ppa-tools/bin:$HOME/local/bin:$PATH"
+  - "PATH=/opt/ghc/bin:/opt/ghc-ppa-tools/bin:$HOME/local/bin:$HOME/.cabal/bin:$PATH"
   - HCNUMVER=$(( $(${HC} --numeric-version|sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+).*/\1 * 10000 + \2 * 100 + \3/') ))
   - echo $HCNUMVER
   - sudo apt-get update
   - sudo apt-get install shellcheck colordiff -y
-  - cabal update && cabal new-install stylish-haskell # ugh. should get this into xenial
+  - cabal new-update && cabal new-install stylish-haskell # ugh. should get this into xenial
 
 install:
   - cabal --version
