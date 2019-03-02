@@ -30,17 +30,19 @@ module Language.Haskell.Meta.Parse (
  ) where
 
 #if MIN_VERSION_template_haskell(2,11,0)
-import Language.Haskell.TH.Syntax hiding (Extension(..))
+import Language.Haskell.TH.Syntax hiding (Extension (..))
 #else
 import Language.Haskell.TH.Syntax
 #endif
-import Language.Haskell.Meta.Syntax.Translate
-import qualified Language.Haskell.Exts.Syntax as Hs
-import Language.Haskell.Exts.Parser hiding (parseExp, parseType, parsePat)
-import qualified Language.Haskell.Exts.SrcLoc as Hs
-import Language.Haskell.Exts.Extension
-import Language.Haskell.Exts.Pretty
-import Language.Haskell.Exts.Parser (ParseMode(..), ParseResult(..))
+import           Language.Haskell.Exts.Extension
+import           Language.Haskell.Exts.Parser           hiding
+  (parseExp, parsePat, parseType)
+import           Language.Haskell.Exts.Parser
+  (ParseMode (..), ParseResult (..))
+import           Language.Haskell.Exts.Pretty
+import qualified Language.Haskell.Exts.SrcLoc           as Hs
+import qualified Language.Haskell.Exts.Syntax           as Hs
+import           Language.Haskell.Meta.Syntax.Translate
 
 -----------------------------------------------------------------------------
 
@@ -121,7 +123,7 @@ pprHsModule = prettyPrint
 
 moduleDecls :: Hs.Module Hs.SrcSpanInfo -> [Hs.Decl Hs.SrcSpanInfo]
 moduleDecls (Hs.Module _ _ _ _ x) = x
-moduleDecls m = todo "" m
+moduleDecls m                     = todo "" m
 -- TODO
 --             (Hs.XmlPage _ _ _ _ _ _ _)
 --          (Hs.XmlHybrid _ _ _ _ _ _ _ _ _)

@@ -1,11 +1,12 @@
-{-# LANGUAGE TemplateHaskell, QuasiQuotes #-}
+{-# LANGUAGE QuasiQuotes     #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 import qualified BF
 import qualified Hs
 import qualified HsHere
 import qualified SKI
 
-import SKI (SKI(S, K, I, (:$)))
+import SKI (SKI ((:$), I, K, S))
 
 -- Very dumb test framework
 shouldBe :: (Show a, Eq a) => a -> a -> IO ()

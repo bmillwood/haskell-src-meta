@@ -4,7 +4,9 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
-{-# LANGUAGE DeriveDataTypeable, PatternGuards, TemplateHaskell #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE PatternGuards      #-}
+{-# LANGUAGE TemplateHaskell    #-}
 
 module SKI
   ( SKI(..)
@@ -15,16 +17,16 @@ module SKI
   , cbrackP
   ) where
 
-import Language.Haskell.Meta (parseExp, parsePat)
-import Language.Haskell.TH.Lib hiding (parensP)
+import Data.Generics                (Data)
+import Data.Typeable                (Typeable)
+import Language.Haskell.Meta        (parseExp, parsePat)
+import Language.Haskell.Meta.Utils  (cleanNames, ppDoc, unsafeRunQ)
+import Language.Haskell.TH.Lib      hiding (parensP)
 import Language.Haskell.TH.Ppr
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
-import Language.Haskell.Meta.Utils (cleanNames, ppDoc, unsafeRunQ)
 import Text.ParserCombinators.ReadP
-import Data.Typeable(Typeable)
-import Data.Generics(Data)
-import Text.PrettyPrint(render)
+import Text.PrettyPrint             (render)
 
 
 quoteTypeNotImplemented = fail "type quoter not implemented"
@@ -67,10 +69,10 @@ instance Lift SKI where
 
 liftSKI (E e) = return e
 liftSKI a     = go a
-  where go S = [|S|]
-        go K = [|K|]
-        go I = [|I|]
-        go (E e) = [|E e|]
+  where go S      = [|S|]
+        go K      = [|K|]
+        go I      = [|I|]
+        go (E e)  = [|E e|]
         go (x:$y) = [|$(go x) :$ $(go y)|]
 
 instance Show SKI where
@@ -86,7 +88,7 @@ instance Show SKI where
 
 skiExpQ :: String -> ExpQ
 skiExpQ s = case run s of
-              [] -> fail "ski: parse error"
+              []  -> fail "ski: parse error"
               e:_ -> lift (cleanNames e)
 
 skiPatQ :: String -> PatQ
@@ -96,7 +98,7 @@ skiPatQ s = do
             . pprint
               . cleanNames) e
   case p of
-    Left e -> fail e
+    Left e  -> fail e
     Right p -> return p
 
 -- ghci> parse "S(SS)IK(SK)"

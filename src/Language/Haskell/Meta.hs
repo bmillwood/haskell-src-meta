@@ -14,4 +14,4 @@ module Language.Haskell.Meta (
 
 import Language.Haskell.Meta.Parse
 import Language.Haskell.Meta.Syntax.Translate
-import Language.Haskell.TH.Instances()
+import Language.Haskell.TH.Instances ()

@@ -1,9 +1,10 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
-{-# LANGUAGE CPP, TemplateHaskell #-}
+{-# LANGUAGE CPP             #-}
+{-# LANGUAGE TemplateHaskell #-}
 -- | Tests stuff mostly by just compiling correctly
 import qualified Language.Haskell.Exts.Extension as Extension
-import qualified Language.Haskell.Exts.Parser as Parser
-import qualified Language.Haskell.Meta as Meta
+import qualified Language.Haskell.Exts.Parser    as Parser
+import qualified Language.Haskell.Meta           as Meta
 
 ----- Testing names -----
 

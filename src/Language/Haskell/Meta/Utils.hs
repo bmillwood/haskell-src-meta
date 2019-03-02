@@ -1,24 +1,29 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-} -- TODO
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE TemplateHaskell, RankNTypes, StandaloneDeriving,
-  DeriveDataTypeable, PatternGuards, FlexibleContexts, FlexibleInstances,
-  TypeSynonymInstances #-}
+{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE DeriveDataTypeable   #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE PatternGuards        #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE StandaloneDeriving   #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 -- | This module is a staging ground
 -- for to-be-organized-and-merged-nicely code.
 
 module Language.Haskell.Meta.Utils where
 
-import Data.List (findIndex)
-import Data.Generics hiding(Fixity)
-import Language.Haskell.Meta
-import System.IO.Unsafe(unsafePerformIO)
-import Language.Haskell.Exts.Pretty(prettyPrint)
-import Language.Haskell.TH.Syntax
-import Language.Haskell.TH.Lib hiding (cxt)
-import Language.Haskell.TH.Ppr
-import Text.PrettyPrint
 import Control.Monad
+import Data.Generics                hiding (Fixity)
+import Data.List                    (findIndex)
+import Language.Haskell.Exts.Pretty (prettyPrint)
+import Language.Haskell.Meta
+import Language.Haskell.TH.Lib      hiding (cxt)
+import Language.Haskell.TH.Ppr
+import Language.Haskell.TH.Syntax
+import System.IO.Unsafe             (unsafePerformIO)
+import Text.PrettyPrint
 
 -----------------------------------------------------------------------------
 
@@ -31,7 +36,7 @@ cleanNames = everywhere (mkT cleanName)
           | otherwise = (mkName . nameBase) n
         isNameU :: Name -> Bool
         isNameU (Name _ (NameU _)) = True
-        isNameU _ = False
+        isNameU _                  = False
 
 
 -- | The type passed in must have a @Show@ instance which
@@ -40,7 +45,7 @@ cleanNames = everywhere (mkT cleanName)
 --  but useful in general.
 pretty :: (Show a) => a -> String
 pretty a = case parseHsExp (show a) of
-            Left _ -> []
+            Left _  -> []
             Right e -> prettyPrint e
 
 
@@ -80,16 +85,16 @@ nameToRawCodeStr :: Name -> String
 nameToRawCodeStr n =
   let s = showNameParens n
   in case nameSpaceOf n of
-      Just VarName -> "'"++s
-      Just DataName -> "'"++s
+      Just VarName   -> "'"++s
+      Just DataName  -> "'"++s
       Just TcClsName -> "''"++s
-      _ -> concat ["(mkName \"", filter (/='"') s, "\")"]
+      _              -> concat ["(mkName \"", filter (/='"') s, "\")"]
   where showNameParens :: Name -> String
         showNameParens n' =
           let nb = nameBase n'
           in case nb of
             (c:_) | isSym c -> concat ["(",nb,")"]
-            _  -> nb
+            _               -> nb
         isSym :: Char -> Bool
         isSym = (`elem` ("><.\\/!@#$%^&*-+?:|" :: [Char]))
 
@@ -113,7 +118,7 @@ a |->| b = appT (appT arrowT a) b
 
 unForall :: Type -> Type
 unForall (ForallT _ _ t) = t
-unForall t = t
+unForall t               = t
 
 functionT :: [TypeQ] -> TypeQ
 functionT = foldl1 (|->|)
@@ -166,7 +171,7 @@ renameT env new (ForallT ns cxt t) =
     in (ForallT ns'' cxt' t', env4, new4)
   where
     unVarT (VarT n) = PlainTV n
-    unVarT ty = error $ "renameT: unVarT: TODO for" ++ show ty
+    unVarT ty       = error $ "renameT: unVarT: TODO for" ++ show ty
     renamePreds = renameThings renamePred
 #if MIN_VERSION_template_haskell(2,10,0)
     renamePred = renameT
@@ -223,7 +228,7 @@ conTypes (NormalC _ sts) = fmap strictTypeTy sts
 conTypes (RecC    _ vts) = fmap varStrictTypeTy vts
 conTypes (InfixC t _ t') = fmap strictTypeTy [t,t']
 conTypes (ForallC _ _ c) = conTypes c
-conTypes c = error $ "conTypes: TODO for " ++ show c
+conTypes c               = error $ "conTypes: TODO for " ++ show c
 -- TODO
             -- (GadtC _ _ _)
             -- (RecGadtC _ _ _)
@@ -236,61 +241,61 @@ conToConType ofType con = foldr (\a b -> AppT (AppT ArrowT a) b) ofType (conType
 
 decCons :: Dec -> [Con]
 #if MIN_VERSION_template_haskell(2,11,0)
-decCons (DataD _ _ _ _ cons _) = cons
+decCons (DataD _ _ _ _ cons _)   = cons
 decCons (NewtypeD _ _ _ _ con _) = [con]
 #else
-decCons (DataD _ _ _ cons _) = cons
-decCons (NewtypeD _ _ _ con _) = [con]
+decCons (DataD _ _ _ cons _)     = cons
+decCons (NewtypeD _ _ _ con _)   = [con]
 #endif
-decCons _ = []
+decCons _                        = []
 
 
 decTyVars :: Dec -> [TyVarBndr]
 #if MIN_VERSION_template_haskell(2,11,0)
-decTyVars (DataD _ _ ns _ _ _) = ns
+decTyVars (DataD _ _ ns _ _ _)    = ns
 decTyVars (NewtypeD _ _ ns _ _ _) = ns
 #else
-decTyVars (DataD _ _ ns _ _) = ns
-decTyVars (NewtypeD _ _ ns _ _) = ns
+decTyVars (DataD _ _ ns _ _)      = ns
+decTyVars (NewtypeD _ _ ns _ _)   = ns
 #endif
-decTyVars (TySynD _ ns _) = ns
-decTyVars (ClassD _ _ ns _ _) = ns
-decTyVars _ = []
+decTyVars (TySynD _ ns _)         = ns
+decTyVars (ClassD _ _ ns _ _)     = ns
+decTyVars _                       = []
 
 
 decName :: Dec -> Maybe Name
-decName (FunD n _) = Just n
+decName (FunD n _)             = Just n
 #if MIN_VERSION_template_haskell(2,11,0)
-decName (DataD _ n _ _ _ _) = Just n
+decName (DataD _ n _ _ _ _)    = Just n
 decName (NewtypeD _ n _ _ _ _) = Just n
 #else
-decName (DataD _ n _ _ _) = Just n
-decName (NewtypeD _ n _ _ _) = Just n
+decName (DataD _ n _ _ _)      = Just n
+decName (NewtypeD _ n _ _ _)   = Just n
 #endif
-decName (TySynD n _ _) = Just n
-decName (ClassD _ n _ _ _) = Just n
-decName (SigD n _) = Just n
-decName (ForeignD fgn) = Just (foreignName fgn)
-decName _ = Nothing
+decName (TySynD n _ _)         = Just n
+decName (ClassD _ n _ _ _)     = Just n
+decName (SigD n _)             = Just n
+decName (ForeignD fgn)         = Just (foreignName fgn)
+decName _                      = Nothing
 
 
 foreignName :: Foreign -> Name
 foreignName (ImportF _ _ _ n _) = n
-foreignName (ExportF _ _ n _) = n
+foreignName (ExportF _ _ n _)   = n
 
 
 unwindT :: Type -> [Type]
 unwindT = go
   where go :: Type -> [Type]
-        go (ForallT _ _ t) = go t
+        go (ForallT _ _ t)           = go t
         go (AppT (AppT ArrowT t) t') = t : go t'
-        go _ = []
+        go _                         = []
 
 
 unwindE :: Exp -> [Exp]
 unwindE = go []
   where go acc (e `AppE` e') = go (e':acc) e
-        go acc e = e:acc
+        go acc e             = e:acc
 
 
 -- | The arity of a Type.
@@ -314,46 +319,52 @@ typeToName t
 -- | Randomly useful.
 nameSpaceOf :: Name -> Maybe NameSpace
 nameSpaceOf (Name _ (NameG ns _ _)) = Just ns
-nameSpaceOf _ = Nothing
+nameSpaceOf _                       = Nothing
 
 conName :: Con -> Name
-conName (RecC n _) = n
-conName (NormalC n _) = n
-conName (InfixC _ n _) = n
+conName (RecC n _)        = n
+conName (NormalC n _)     = n
+conName (InfixC _ n _)    = n
 conName (ForallC _ _ con) = conName con
-conName c = error $ "conName: TODO for" ++ show c
+conName c                 = error $ "conName: TODO for" ++ show c
 -- TODO
             -- (GadtC _ _ _)
             -- (RecGadtC _ _ _)
 
 recCName :: Con -> Maybe Name
 recCName (RecC n _) = Just n
-recCName _ = Nothing
+recCName _          = Nothing
 
 dataDCons :: Dec -> [Con]
 #if MIN_VERSION_template_haskell(2,11,0)
 dataDCons (DataD _ _ _ _ cons _) = cons
 #else
-dataDCons (DataD _ _ _ cons _) = cons
+dataDCons (DataD _ _ _ cons _)   = cons
 #endif
-dataDCons _ = []
+dataDCons _                      = []
 
 fromDataConI :: Info -> Q (Maybe Exp)
 #if MIN_VERSION_template_haskell(2,11,0)
 fromDataConI (DataConI dConN ty _tyConN) =
-#else
-fromDataConI (DataConI dConN ty _tyConN fxty) =
-#endif
   let n = arityT ty
   in replicateM n (newName "a")
       >>= \ns -> return (Just (LamE
                     [ConP dConN (fmap VarP ns)]
                     (TupE $ fmap VarE ns)))
+#else
+fromDataConI (DataConI dConN ty _tyConN _fxty) =
+  let n = arityT ty
+  in replicateM n (newName "a")
+      >>= \ns -> return (Just (LamE
+                    [ConP dConN (fmap VarP ns)]
+                    (TupE $ fmap VarE ns)))
+
+#endif
 fromDataConI _ = return Nothing
 
 fromTyConI :: Info -> Maybe Dec
 fromTyConI (TyConI dec) = Just dec
-fromTyConI _ = Nothing
+fromTyConI _            = Nothing
 
 mkFunD :: Name -> [Pat] -> Exp -> Dec
 mkFunD f xs e = FunD f [Clause xs (NormalB e) []]

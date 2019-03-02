@@ -1,19 +1,20 @@
 -- TODO: knock out these warnings
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
-{-# LANGUAGE BangPatterns, TemplateHaskell #-}
+{-# LANGUAGE BangPatterns    #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module BF (
    bf,bf2,bfHelloWorld,eval_,parse, exec, test0
 ) where
 
-import Language.Haskell.Meta (parsePat)
+import Language.Haskell.Meta      (parsePat)
 import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
-import Data.Char
-import Data.IntMap(IntMap)
+import           Data.Char
+import           Data.IntMap (IntMap)
 import qualified Data.IntMap as IM
 
 -- TODO: narrow type & move to shared module
@@ -52,16 +53,16 @@ bfPatQ s = do
             . show
               . parse) s
   case p of
-    Left e -> fail e
+    Left e  -> fail e
     Right p -> return p
 
 instance Lift Bf where
-  lift Inp = [|Inp|]
-  lift Out = [|Out|]
-  lift Inc = [|Inc|]
-  lift Dec = [|Dec|]
-  lift MovL = [|MovL|]
-  lift MovR = [|MovR|]
+  lift Inp        = [|Inp|]
+  lift Out        = [|Out|]
+  lift Inc        = [|Inc|]
+  lift Dec        = [|Dec|]
+  lift MovL       = [|MovL|]
+  lift MovR       = [|MovR|]
   lift (While xs) = [|While $(lift xs)|]
 
 type Ptr = Int

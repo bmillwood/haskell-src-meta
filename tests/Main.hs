@@ -2,14 +2,14 @@
 
 module Main where
 
-import Language.Haskell.Meta.Parse
-import qualified Language.Haskell.Exts as Exts
+import qualified Language.Haskell.Exts           as Exts
 import qualified Language.Haskell.Exts.Extension as Extension
-import qualified Language.Haskell.Exts.Parser as Parser
-import qualified Language.Haskell.TH as TH
-import Test.Framework
-import Test.Framework.Providers.HUnit
-import Test.HUnit (Assertion, (@?=))
+import qualified Language.Haskell.Exts.Parser    as Parser
+import           Language.Haskell.Meta.Parse
+import qualified Language.Haskell.TH             as TH
+import           Test.Framework
+import           Test.Framework.Providers.HUnit
+import           Test.HUnit                      (Assertion, (@?=))
 
 main :: IO ()
 main = defaultMain tests

@@ -2,7 +2,9 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 
-{-# LANGUAGE DeriveDataTypeable, PatternGuards, TemplateHaskell #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE PatternGuards      #-}
+{-# LANGUAGE TemplateHaskell    #-}
 
 module HsHere
   ( here
@@ -15,15 +17,15 @@ module HsHere
   , cbrackP
   ) where
 
-import Language.Haskell.Meta (parseExp, parsePat)
-import Language.Haskell.TH.Lib hiding (parensP)
+import Data.Generics                (Data)
+import Data.Typeable                (Typeable)
+import Language.Haskell.Meta        (parseExp, parsePat)
+import Language.Haskell.Meta.Utils  (cleanNames)
+import Language.Haskell.TH.Lib      hiding (parensP)
 import Language.Haskell.TH.Ppr
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
-import Language.Haskell.Meta.Utils (cleanNames)
 import Text.ParserCombinators.ReadP
-import Data.Typeable(Typeable)
-import Data.Generics(Data)
 
 data Here
   = CodeH Exp
@@ -57,7 +59,7 @@ liftHere (ManyH hs) = [|concat $(listE (fmap liftHere hs))|]
 
 hereExpQ :: String -> ExpQ
 hereExpQ s = case run s of
-              [] -> fail "here: parse error"
+              []  -> fail "here: parse error"
               e:_ -> lift (cleanNames e)
 
 herePatQ :: String -> PatQ
@@ -67,7 +69,7 @@ herePatQ s = do
             . pprint
               . cleanNames) e
   case p of
-    Left e -> fail e
+    Left e  -> fail e
     Right p -> return p
 
 run :: String -> [Here]

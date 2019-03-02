@@ -4,7 +4,7 @@
 
 module Hs (hs, pat) where
 
-import Language.Haskell.Meta (parseExp, parsePat)
+import Language.Haskell.Meta       (parseExp, parsePat)
 import Language.Haskell.Meta.Utils (pretty)
 import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Quote
@@ -42,7 +42,7 @@ pat = QuasiQuoter
         { quoteExp = quoteExp hs
         , quotePat = \s -> case parseExp s of
                 Left err -> fail err
-                Right e -> either fail return (parsePat . pretty $ e)
+                Right e  -> either fail return (parsePat . pretty $ e)
       , quoteType = quoteTypeNotImplemented
       , quoteDec = quoteDecNotImplemented
         }

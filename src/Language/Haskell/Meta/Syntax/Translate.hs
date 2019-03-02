@@ -1,4 +1,7 @@
-{-# LANGUAGE CPP, TemplateHaskell, TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE CPP                  #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 {- |
   Module      :  Language.Haskell.Meta.Syntax.Translate
@@ -13,15 +16,12 @@ module Language.Haskell.Meta.Syntax.Translate (
     module Language.Haskell.Meta.Syntax.Translate
 ) where
 
-import Data.Char (ord)
-import Data.List (foldl')
-import Language.Haskell.TH.Syntax
+import           Data.Char                    (ord)
+import           Data.List                    (foldl')
 import qualified Language.Haskell.Exts.SrcLoc as Hs
-#if MIN_VERSION_haskell_src_exts(1,18,0)
+import           Language.Haskell.TH.Syntax
+
 import qualified Language.Haskell.Exts.Syntax as Hs
-#else
-import qualified Language.Haskell.Exts.Annotated.Syntax as Hs
-#endif
 
 -----------------------------------------------------------------------------
 
@@ -128,7 +128,7 @@ instance ToName String where
   toName = mkName
 
 instance ToName (Hs.Name l) where
-  toName (Hs.Ident _ s) = toName s
+  toName (Hs.Ident _ s)  = toName s
   toName (Hs.Symbol _ s) = toName s
 
 instance ToName (Hs.SpecialCon l) where
@@ -191,12 +191,12 @@ instance ToPat (Hs.Pat l) where
   toPat (Hs.PLit _ (Hs.Signless _) l)
     = LitP (toLit l)
   toPat (Hs.PLit _ (Hs.Negative _) l) = LitP $ case toLit l of
-    IntegerL z -> IntegerL (negate z)
-    RationalL q -> RationalL (negate q)
-    IntPrimL z' -> IntPrimL (negate z')
-    FloatPrimL r' -> FloatPrimL (negate r')
+    IntegerL z      -> IntegerL (negate z)
+    RationalL q     -> RationalL (negate q)
+    IntPrimL z'     -> IntPrimL (negate z')
+    FloatPrimL r'   -> FloatPrimL (negate r')
     DoublePrimL r'' -> DoublePrimL (negate r'')
-    _ -> nonsense "toPat" "negating wrong kind of literal" l
+    _               -> nonsense "toPat" "negating wrong kind of literal" l
   toPat (Hs.PInfixApp _ p n q) = UInfixP (toPat p) (toName n) (toPat q)
   toPat (Hs.PApp _ n ps) = ConP (toName n) (fmap toPat ps)
   toPat (Hs.PTuple _ Hs.Boxed ps) = TupP (fmap toPat ps)
@@ -232,7 +232,7 @@ instance ToExp (Hs.QOp l) where
 
 toFieldExp :: Hs.FieldUpdate l -> FieldExp
 toFieldExp (Hs.FieldUpdate _ n e) = (toName n, toExp e)
-toFieldExp h = todo "toFieldExp" h
+toFieldExp h                      = todo "toFieldExp" h
 
 
 
@@ -273,7 +273,7 @@ instance ToExp (Hs.Exp l) where
   toExp (Hs.ListComp _ e ss)         = CompE $ map convert ss ++ [NoBindS (toExp e)]
    where
     convert (Hs.QualStmt _ st) = toStmt st
-    convert s = noTH "toExp ListComp" s
+    convert s                  = noTH "toExp ListComp" s
   toExp (Hs.ExpTypeSig _ e t)      = SigE (toExp e) (toType t)
   toExp e = todo "toExp" e
 
@@ -282,7 +282,7 @@ toMatch :: Hs.Alt l -> Match
 toMatch (Hs.Alt _ p rhs ds) = Match (toPat p) (toBody rhs) (toDecs ds)
 
 toBody :: Hs.Rhs l -> Body
-toBody (Hs.UnGuardedRhs _ e) = NormalB $ toExp e
+toBody (Hs.UnGuardedRhs _ e)   = NormalB $ toExp e
 toBody (Hs.GuardedRhss _ rhss) = GuardedB $ map toGuard rhss
 
 toGuard :: Hs.GuardedRhs l -> (Guard, Exp)
@@ -290,19 +290,19 @@ toGuard (Hs.GuardedRhs _ stmts e) = (g, toExp e)
   where
     g = case map toStmt stmts of
       [NoBindS x] -> NormalG x
-      xs -> PatG xs
+      xs          -> PatG xs
 
 instance ToDecs a => ToDecs (Maybe a) where
-    toDecs Nothing = []
+    toDecs Nothing  = []
     toDecs (Just a) = toDecs a
 
 instance ToDecs (Hs.Binds l) where
-  toDecs (Hs.BDecls _ ds)   = toDecs ds
+  toDecs (Hs.BDecls _ ds)  = toDecs ds
   toDecs a@(Hs.IPBinds {}) = noTH "ToDecs Hs.Binds" a
 
 instance ToDecs (Hs.ClassDecl l) where
   toDecs (Hs.ClsDecl _ d) = toDecs d
-  toDecs x = todo "classDecl" x
+  toDecs x                = todo "classDecl" x
 
 -----------------------------------------------------------------------------
 
@@ -324,16 +324,16 @@ instance ToName Name where
   toName = id
 
 instance ToName TyVarBndr where
-  toName (PlainTV n) = n
+  toName (PlainTV n)    = n
   toName (KindedTV n _) = n
 
 #if !MIN_VERSION_haskell_src_exts(1,21,0)
 instance ToType (Hs.Kind l) where
-  toType (Hs.KindStar _) = StarT
+  toType (Hs.KindStar _)     = StarT
   toType (Hs.KindFn _ k1 k2) = toType k1 .->. toType k2
   toType (Hs.KindParen _ kp) = toType kp
-  toType (Hs.KindVar _ n) = VarT (toName n)
-  toType h = todo "toType" h
+  toType (Hs.KindVar _ n)    = VarT (toName n)
+  toType h                   = todo "toType" h
   -- TODO
   -- (Hs.KindApp _ _ _)
   -- (Hs.KindTuple _ _)
@@ -354,7 +354,7 @@ instance ToType (Hs.Type l) where
   toType (Hs.TyTuple _ b ts) = foldAppT (tuple . length $ ts) (fmap toType ts)
    where
     tuple = case b of
-      Hs.Boxed -> TupleT
+      Hs.Boxed   -> TupleT
       Hs.Unboxed -> UnboxedTupleT
   toType (Hs.TyApp _ a b) = AppT (toType a) (toType b)
   toType (Hs.TyVar _ n) = VarT (toName n)
@@ -363,10 +363,11 @@ instance ToType (Hs.Type l) where
   -- XXX: need to wrap the name in parens!
 #if MIN_VERSION_haskell_src_exts(1,20,0)
   toType (Hs.TyInfix _ a (Hs.UnpromotedName _ o) b) =
+    AppT (AppT (ConT (toName o)) (toType a)) (toType b)
 #else
   toType (Hs.TyInfix _ a o b) =
-#endif
     AppT (AppT (ConT (toName o)) (toType a)) (toType b)
+#endif
   toType (Hs.TyKind _ t k) = SigT (toType t) (toKind k)
   toType t@Hs.TyBang{} =
     nonsense "toType" "type cannot have strictness annotations in this context" t
@@ -381,23 +382,23 @@ toStrictType :: Hs.Type l -> StrictType
 #if MIN_VERSION_template_haskell(2,11,0)
 toStrictType (Hs.TyBang _ s u t) = (Bang (toUnpack u) (toStrict s), toType t)
     where
-      toStrict (Hs.LazyTy _) = SourceLazy
-      toStrict (Hs.BangedTy _) = SourceStrict
+      toStrict (Hs.LazyTy _)        = SourceLazy
+      toStrict (Hs.BangedTy _)      = SourceStrict
       toStrict (Hs.NoStrictAnnot _) = NoSourceStrictness
-      toUnpack (Hs.Unpack _) = SourceUnpack
-      toUnpack (Hs.NoUnpack _) = SourceNoUnpack
+      toUnpack (Hs.Unpack _)         = SourceUnpack
+      toUnpack (Hs.NoUnpack _)       = SourceNoUnpack
       toUnpack (Hs.NoUnpackPragma _) = NoSourceUnpackedness
 toStrictType x = (Bang NoSourceUnpackedness NoSourceStrictness, toType x)
 #elif MIN_VERSION_haskell_src_exts(1,18,0)
 -- TyBang l (BangType l) (Unpackedness l) (Type l)
--- data BangType l = BangedTy l	| LazyTy l | NoStrictAnnot l
+-- data BangType l = BangedTy l        | LazyTy l | NoStrictAnnot l
 -- data Unpackedness l = Unpack l | NoUnpack l | NoUnpackPragma l
 toStrictType (Hs.TyBang _ b u t) = (toStrict b u, toType t)
     where
       toStrict :: Hs.BangType l -> Hs.Unpackedness l -> Strict
       toStrict (Hs.BangedTy _) _ = IsStrict
-      toStrict _ (Hs.Unpack _) = Unpacked
-      toStrict _ _ = NotStrict
+      toStrict _ (Hs.Unpack _)   = Unpacked
+      toStrict _ _               = NotStrict
 toStrictType x = (NotStrict, toType x)
 #else
 toStrictType t@(Hs.TyBang _ _ Hs.TyBang{}) =
@@ -435,13 +436,18 @@ instance ToDerivClauses (Hs.Deriving l) where
 instance ToDerivClauses (Hs.Deriving l) where
 #if MIN_VERSION_haskell_src_exts(1,20,0)
   toDerivClauses (Hs.Deriving _ _ irules) =
-#else
-  toDerivClauses (Hs.Deriving _ irules) =
-#endif
 #if MIN_VERSION_template_haskell(2,11,0)
     map toType irules
 #else
     concatMap toNames irules
+#endif
+#else
+  toDerivClauses (Hs.Deriving _ irules) =
+#if MIN_VERSION_template_haskell(2,11,0)
+    map toType irules
+#else
+    concatMap toNames irules
+#endif
 #endif
 #endif
 
@@ -454,9 +460,9 @@ instance ToDerivClauses a => ToDerivClauses [a] where
 
 #if MIN_VERSION_template_haskell(2,12,0) && MIN_VERSION_haskell_src_exts(1,20,0)
 toDerivStrategy :: (Hs.DerivStrategy l) -> DerivStrategy
-toDerivStrategy (Hs.DerivStock _) = StockStrategy
+toDerivStrategy (Hs.DerivStock _)    = StockStrategy
 toDerivStrategy (Hs.DerivAnyclass _) = AnyclassStrategy
-toDerivStrategy (Hs.DerivNewtype _) = NewtypeStrategy
+toDerivStrategy (Hs.DerivNewtype _)  = NewtypeStrategy
 #endif
 
 foldAppT :: Type -> [Type] -> Type
@@ -467,10 +473,10 @@ foldAppT t ts = foldl' AppT t ts
 -- * ToStmt HsStmt
 
 instance ToStmt (Hs.Stmt l) where
-  toStmt (Hs.Generator _ p e)  = BindS (toPat p) (toExp e)
-  toStmt (Hs.Qualifier _ e)      = NoBindS (toExp e)
-  toStmt _a@(Hs.LetStmt _ bnds)   = LetS (toDecs bnds)
-  toStmt s@Hs.RecStmt{}        = noTH "toStmt" s
+  toStmt (Hs.Generator _ p e)   = BindS (toPat p) (toExp e)
+  toStmt (Hs.Qualifier _ e)     = NoBindS (toExp e)
+  toStmt _a@(Hs.LetStmt _ bnds) = LetS (toDecs bnds)
+  toStmt s@Hs.RecStmt{}         = noTH "toStmt" s
 
 
 -----------------------------------------------------------------------------
@@ -577,11 +583,11 @@ instance ToDec (Hs.Decl l) where
 
 #if MIN_VERSION_haskell_src_exts(1,18,0)
 instance ToMaybeKind (Hs.ResultSig l) where
-    toMaybeKind (Hs.KindSig _ k) = Just $ toKind k
+    toMaybeKind (Hs.KindSig _ k)  = Just $ toKind k
     toMaybeKind (Hs.TyVarSig _ _) = Nothing
 
 instance ToMaybeKind a => ToMaybeKind (Maybe a) where
-    toMaybeKind Nothing = Nothing
+    toMaybeKind Nothing  = Nothing
     toMaybeKind (Just a) = toMaybeKind a
 #endif
 
@@ -591,65 +597,67 @@ instance ToInjectivityAnn (Hs.InjectivityInfo l) where
 #endif
 
 transAct :: Maybe (Hs.Activation l) -> Phases
-transAct Nothing = AllPhases
-transAct (Just (Hs.ActiveFrom _ n)) = FromPhase n
+transAct Nothing                     = AllPhases
+transAct (Just (Hs.ActiveFrom _ n))  = FromPhase n
 transAct (Just (Hs.ActiveUntil _ n)) = BeforePhase n
 
 instance ToName (Hs.DeclHead l) where
-  toName (Hs.DHead _ n) = toName n
+  toName (Hs.DHead _ n)     = toName n
   toName (Hs.DHInfix _ _ n) = toName n
-  toName (Hs.DHParen _ h) = toName h
-  toName (Hs.DHApp _ h _) = toName h
+  toName (Hs.DHParen _ h)   = toName h
+  toName (Hs.DHApp _ h _)   = toName h
 
 instance ToTyVars (Hs.DeclHead l) where
-  toTyVars (Hs.DHead _ _) = []
-  toTyVars (Hs.DHParen _ h) = toTyVars h
+  toTyVars (Hs.DHead _ _)       = []
+  toTyVars (Hs.DHParen _ h)     = toTyVars h
   toTyVars (Hs.DHInfix _ tvb _) = [toTyVar tvb]
-  toTyVars (Hs.DHApp _ h tvb) = toTyVars h ++ [toTyVar tvb]
+  toTyVars (Hs.DHApp _ h tvb)   = toTyVars h ++ [toTyVar tvb]
 
 instance ToNames a => ToNames (Maybe a) where
-  toNames Nothing = []
+  toNames Nothing  = []
   toNames (Just a) = toNames a
 
 instance ToNames (Hs.Deriving l) where
 #if MIN_VERSION_haskell_src_exts(1,20,0)
   toNames (Hs.Deriving _ _ irules) =
+    concatMap toNames irules
 #else
   toNames (Hs.Deriving _ irules) =
-#endif
     concatMap toNames irules
+#endif
+
 instance ToNames (Hs.InstRule l) where
-  toNames (Hs.IParen _ irule) = toNames irule
+  toNames (Hs.IParen _ irule)            = toNames irule
   toNames (Hs.IRule _ _mtvbs _mcxt mihd) = toNames mihd
 instance ToNames (Hs.InstHead l) where
-  toNames (Hs.IHCon _ n) = [toName n]
+  toNames (Hs.IHCon _ n)     = [toName n]
   toNames (Hs.IHInfix _ _ n) = [toName n]
-  toNames (Hs.IHParen _ h) = toNames h
-  toNames (Hs.IHApp _ h _) = toNames h
+  toNames (Hs.IHParen _ h)   = toNames h
+  toNames (Hs.IHApp _ h _)   = toNames h
 
 instance ToCxt (Hs.InstRule l) where
   toCxt (Hs.IRule _ _ cxt _) = toCxt cxt
-  toCxt (Hs.IParen _ irule) = toCxt irule
+  toCxt (Hs.IParen _ irule)  = toCxt irule
 
 instance ToCxt (Hs.Context l) where
   toCxt x = case x of
-              Hs.CxEmpty _ -> []
+              Hs.CxEmpty _     -> []
               Hs.CxSingle _ x' -> [toPred x']
-              Hs.CxTuple _ xs -> fmap toPred xs
+              Hs.CxTuple _ xs  -> fmap toPred xs
 
 instance ToCxt a => ToCxt (Maybe a) where
-    toCxt Nothing = []
+    toCxt Nothing  = []
     toCxt (Just a) = toCxt a
 
 instance ToType (Hs.InstRule l) where
-    toType (Hs.IRule _ _ _ h) = toType h
+    toType (Hs.IRule _ _ _ h)  = toType h
     toType (Hs.IParen _ irule) = toType irule
 
 instance ToType (Hs.InstHead l) where
-    toType (Hs.IHCon _ qn) = toType qn
+    toType (Hs.IHCon _ qn)       = toType qn
     toType (Hs.IHInfix _ typ qn) = AppT (toType typ) (toType qn)
-    toType (Hs.IHParen _ hd) = toType hd
-    toType (Hs.IHApp _ hd typ) = AppT (toType hd) (toType typ)
+    toType (Hs.IHParen _ hd)     = toType hd
+    toType (Hs.IHApp _ hd typ)   = AppT (toType hd) (toType typ)
 
 qualConDeclToCon :: Hs.QualConDecl l -> Con
 qualConDeclToCon (Hs.QualConDecl _ Nothing Nothing cdecl) = conDeclToCon cdecl
@@ -658,7 +666,7 @@ qualConDeclToCon (Hs.QualConDecl _ ns cxt cdecl) = ForallC (toTyVars ns)
                                                     (conDeclToCon cdecl)
 
 instance ToTyVars a => ToTyVars (Maybe a) where
-  toTyVars Nothing = []
+  toTyVars Nothing  = []
   toTyVars (Just a) = toTyVars a
 
 instance ToTyVars a => ToTyVars [a] where
@@ -707,7 +715,7 @@ hsRhsToBody :: Hs.Rhs l -> Body
 hsRhsToBody (Hs.UnGuardedRhs _ e) = NormalB (toExp e)
 hsRhsToBody (Hs.GuardedRhss _ hsgrhs) =
   let fromGuardedB (GuardedB a) = a
-      fromGuardedB h = todo "fromGuardedB" [h]
+      fromGuardedB h            = todo "fromGuardedB" [h]
       -- TODO: (NormalB _)
   in GuardedB . concat
      . fmap (fromGuardedB . hsGuardedRhsToBody)
@@ -729,9 +737,9 @@ hsGuardedRhsToBody (Hs.GuardedRhs _ ss e)  = let ss' = fmap hsStmtToGuard ss
 
 hsStmtToGuard :: Hs.Stmt l -> Guard
 hsStmtToGuard (Hs.Generator _ p e) = PatG [BindS (toPat p) (toExp e)]
-hsStmtToGuard (Hs.Qualifier _ e)     = NormalG (toExp e)
-hsStmtToGuard (Hs.LetStmt _ bs)      = PatG [LetS (toDecs bs)]
-hsStmtToGuard h = todo "hsStmtToGuard" h
+hsStmtToGuard (Hs.Qualifier _ e)   = NormalG (toExp e)
+hsStmtToGuard (Hs.LetStmt _ bs)    = PatG [LetS (toDecs bs)]
+hsStmtToGuard h                    = todo "hsStmtToGuard" h
 -- TODO
 -- (Hs.RecStmt _ _)
 
@@ -741,7 +749,7 @@ hsStmtToGuard h = todo "hsStmtToGuard" h
 -- * ToDecs InstDecl
 instance ToDecs (Hs.InstDecl l) where
   toDecs (Hs.InsDecl _ decl) = toDecs decl
-  toDecs d              = todo "toDec" d
+  toDecs d                   = todo "toDec" d
 
 -- * ToDecs HsDecl HsBinds
 
@@ -756,8 +764,8 @@ instance ToDecs (Hs.Decl l) where
     map (\op -> InfixD (Fixity fixity dir) (toName op)) ops
    where
     dir = case assoc of
-      Hs.AssocNone _ -> InfixN
-      Hs.AssocLeft _ -> InfixL
+      Hs.AssocNone _  -> InfixN
+      Hs.AssocLeft _  -> InfixL
       Hs.AssocRight _ -> InfixR
 
   toDecs a = [toDec a]
