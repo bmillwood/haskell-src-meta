@@ -231,6 +231,12 @@ instance ToPat (Exts.Pat l) where
   toPat p@Exts.PXPatTag{} = noTH "toPat" p
   toPat (Exts.PBangPat _ p) = TH.BangP (toPat p)
   toPat p = todo "toPat" p
+  -- TODO
+            -- (Exts.PNPlusK _ _ _)
+            -- (Exts.PUnboxedSum _ _ _ _)
+            -- (Exts.PXRPats _ _)
+            -- (Exts.PSplice _ _)
+            -- ...
 
 -----------------------------------------------------------------------------
 
@@ -386,7 +392,7 @@ instance ToType (Exts.Type l) where
     TH.AppT (TH.AppT (TH.ConT (toName o)) (toType a)) (toType b)
 #else
   toType (Exts.TyInfix _ a o b) =
-    AppT (AppT (ConT (toName o)) (toType a)) (toType b)
+    TH.AppT (TH.AppT (TH.ConT (toName o)) (toType a)) (toType b)
 #endif
   toType (Exts.TyKind _ t k) = TH.SigT (toType t) (toKind k)
   toType (Exts.TyPromoted _ p) = case p of
@@ -493,6 +499,14 @@ toDerivStrategy :: (Exts.DerivStrategy l) -> TH.DerivStrategy
 toDerivStrategy (Exts.DerivStock _)    = TH.StockStrategy
 toDerivStrategy (Exts.DerivAnyclass _) = TH.AnyclassStrategy
 toDerivStrategy (Exts.DerivNewtype _)  = TH.NewtypeStrategy
+#if MIN_VERSION_haskell_src_exts(1,21,0)
+#if MIN_VERSION_template_haskell(2,14,0)
+toDerivStrategy (Exts.DerivVia _ t)    = TH.ViaStrategy (toType t)
+#else
+toDerivStrategy d@Exts.DerivVia{}      = noTHyet "toDerivStrategy" "2.14" d
+#endif
+#endif
+
 #endif
 
 
