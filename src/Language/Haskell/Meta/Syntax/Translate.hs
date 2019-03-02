@@ -46,12 +46,12 @@ class ToInjectivityAnn a where toInjectivityAnn :: a -> TH.InjectivityAnn
 #if MIN_VERSION_template_haskell(2,12,0)
 type DerivClause = TH.DerivClause
 #elif MIN_VERSION_template_haskell(2,11,0)
-type DerivClause = Pred
+type DerivClause = TH.Pred
 #else
-type DerivClause = Name
+type DerivClause = TH.Name
 #endif
 
-class ToDerivClauses a where toDerivClauses :: a -> [TH.DerivClause]
+class ToDerivClauses a where toDerivClauses :: a -> [DerivClause]
 
 -- for error messages
 moduleName :: String
@@ -396,7 +396,11 @@ instance ToType (Exts.Type l) where
     Exts.PromotedList _ _q ts -> foldr (\t pl -> TH.PromotedConsT `TH.AppT` toType t `TH.AppT` pl) TH.PromotedNilT ts
     Exts.PromotedTuple _ ts -> foldr (\t pt -> pt `TH.AppT` toType t) (TH.PromotedTupleT $ length ts) ts
     Exts.PromotedUnit _ -> TH.PromotedT ''()
+#if MIN_VERSION_template_haskell(2,10,0)
   toType (Exts.TyEquals _ t1 t2) = TH.EqualityT `TH.AppT` toType t1 `TH.AppT` toType t2
+#else
+  toType t@Exts.TyEquals{} = noTHyet "toType" "2.10.0" t
+#endif
   toType t@Exts.TySplice{} = noTH "toType" t
   toType t@Exts.TyBang{} =
     nonsense "toType" "type cannot have strictness annotations in this context" t
@@ -425,11 +429,11 @@ toStrictType x = (TH.Bang TH.NoSourceUnpackedness TH.NoSourceStrictness, toType 
 -- data Unpackedness l = Unpack l | NoUnpack l | NoUnpackPragma l
 toStrictType (Exts.TyBang _ b u t) = (toStrict b u, toType t)
     where
-      toStrict :: Exts.BangType l -> Exts.Unpackedness l -> Strict
-      toStrict (Exts.BangedTy _) _ = IsStrict
-      toStrict _ (Exts.Unpack _)   = Unpacked
-      toStrict _ _                 = NotStrict
-toStrictType x = (NotStrict, toType x)
+      toStrict :: Exts.BangType l -> Exts.Unpackedness l -> TH.Strict
+      toStrict (Exts.BangedTy _) _ = TH.IsStrict
+      toStrict _ (Exts.Unpack _)   = TH.Unpacked
+      toStrict _ _                 = TH.NotStrict
+toStrictType x = (TH.NotStrict, toType x)
 #endif
 
 (.->.) :: TH.Type -> TH.Type -> TH.Type
@@ -441,9 +445,9 @@ instance ToPred (Exts.Asst l) where
     toPred (Exts.InfixA _ t1 n t2) = List.foldl' TH.AppT (TH.ConT (toName n)) (fmap toType [t1,t2])
     toPred (Exts.EqualP _ t1 t2) = List.foldl' TH.AppT TH.EqualityT (fmap toType [t1,t2])
 #else
-    toPred (Exts.ClassA _ n ts) = ClassP (toName n) (fmap toType ts)
-    toPred (Exts.InfixA _ t1 n t2) = ClassP (toName n) (fmap toType [t1, t2])
-    toPred (Exts.EqualP _ t1 t2) = EqualP (toType t1) (toType t2)
+    toPred (Exts.ClassA _ n ts) = TH.ClassP (toName n) (fmap toType ts)
+    toPred (Exts.InfixA _ t1 n t2) = TH.ClassP (toName n) (fmap toType [t1, t2])
+    toPred (Exts.EqualP _ t1 t2) = TH.EqualP (toType t1) (toType t2)
 #endif
     toPred (Exts.ParenA _ asst) = toPred asst
     toPred a@Exts.AppA{} = todo "toPred" a
@@ -459,7 +463,7 @@ instance ToDerivClauses (Exts.Deriving l) where
 #if MIN_VERSION_haskell_src_exts(1,20,0)
   toDerivClauses (Exts.Deriving _ strat irules) = [TH.DerivClause (fmap toDerivStrategy strat) (map toType irules)]
 #else
-  toDerivClauses (Exts.Deriving _ irules) = [DerivClause Nothing (map toType irules)]
+  toDerivClauses (Exts.Deriving _ irules) = [TH.DerivClause Nothing (map toType irules)]
 #endif
 #elif MIN_VERSION_template_haskell(2,11,0)
 #if MIN_VERSION_haskell_src_exts(1,20,0)
@@ -577,9 +581,9 @@ instance ToDec (Exts.Decl l) where
     = TH.DataFamilyD (toName h) (toTyVars h) (toMaybeKind sig)
 #else
   toDec (Exts.TypeFamDecl _ h sig inj)
-    = FamilyD TypeFam (toName h) (toTyVars h) (toMaybeKind sig)
+    = TH.FamilyD TH.TypeFam (toName h) (toTyVars h) (toMaybeKind sig)
   toDec (Exts.DataFamDecl _ _ h sig)
-    = FamilyD DataFam (toName h) (toTyVars h) (toMaybeKind sig)
+    = TH.FamilyD TH.DataFam (toName h) (toTyVars h) (toMaybeKind sig)
 #endif
 
   toDec _a@(Exts.FunBind _ mtchs)                           = hsMatchesToFunD mtchs
@@ -600,7 +604,7 @@ instance ToDec (Exts.Decl l) where
     (toType irule)
     (toDecs ids)
 #else
-  toDec (Exts.InstDecl _ Nothing irule ids) = InstanceD
+  toDec (Exts.InstDecl _ Nothing irule ids) = TH.InstanceD
     (toCxt irule)
     (toType irule)
     (toDecs ids)
