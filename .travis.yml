@@ -69,7 +69,7 @@ before_install:
   - echo $HCNUMVER
   - sudo apt-get update
   - sudo apt-get install shellcheck colordiff -y
-  - if [ "x$LINT" = "x--enable-lint" ]; cabal new-update && cabal new-install stylish-haskell; fi
+  - if [ "x$LINT" = "x--enable-lint" ]; then cabal new-update && cabal new-install stylish-haskell; fi
 
 install:
   - cabal --version
