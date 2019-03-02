@@ -1,3 +1,5 @@
 resolver: nightly-2019-02-18
 packages:
 - .
+ghc-options:
+  "$locals": -Wall -Wcompat -Werror
