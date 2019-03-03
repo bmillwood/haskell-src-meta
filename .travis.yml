@@ -68,8 +68,8 @@ before_install:
   - HCNUMVER=$(( $(${HC} --numeric-version|sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+).*/\1 * 10000 + \2 * 100 + \3/') ))
   - echo $HCNUMVER
   - sudo apt-get update
-  - sudo apt-get install shellcheck colordiff cabal2nix -y
-  - if [ "x$LINT" = "x--enable-lint" ]; then cabal new-update && cabal new-install stylish-haskell; fi
+  - sudo apt-get install shellcheck colordiff -y
+  - if [ "x$LINT" = "x--enable-lint" ]; then cabal new-update && cabal new-install stylish-haskell cabal2nix; fi
 
 install:
   - cabal --version
