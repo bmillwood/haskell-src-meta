@@ -1,5 +1,5 @@
 resolver: lts-6.35
 packages:
-- .
+- haskell-src-meta
 extra-deps:
 - haskell-src-exts-1.18.2

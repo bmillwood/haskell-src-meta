@@ -2,5 +2,5 @@
 let
   inherit (pkgs.haskellPackages) callPackage;
 in {
-  package = callPackage ./haskell-src-meta.nix { } ;
+  haskell-src-meta = callPackage ./haskell-src-meta { } ;
 }

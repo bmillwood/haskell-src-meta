@@ -10,4 +10,4 @@ if stylish-haskell "$1" | colordiff "$1" /dev/stdin 2>/dev/null; then
 else
   echo "$0 $*"
   exit 1;
-fi;
+fi

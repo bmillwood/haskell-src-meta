@@ -5,7 +5,7 @@
 mkDerivation {
   pname = "haskell-src-meta";
   version = "0.8.2";
-  sha256 = "0vqnq668c88x4amvbs34rxiwdpnxqxr40jy998fc4vd9z6gd4w3r";
+  src = ./.;
   libraryHaskellDepends = [
     base haskell-src-exts pretty syb template-haskell th-orphans
   ];

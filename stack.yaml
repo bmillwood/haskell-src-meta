@@ -1,5 +1,5 @@
-resolver: nightly-2019-02-18
+resolver: nightly-2019-03-02
 packages:
-- .
+- haskell-src-meta
 ghc-options:
   "$locals": -Wall -Wcompat -Werror
