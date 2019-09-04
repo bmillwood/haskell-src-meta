@@ -10,13 +10,15 @@ import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
--- TODO: narrow type & move to shared module
-quoteTypeNotImplemented :: String -> a
-quoteTypeNotImplemented = fail "type quoter not implemented"
+import qualified Control.Monad.Fail as Fail
 
 -- TODO: narrow type & move to shared module
-quoteDecNotImplemented :: String -> a
-quoteDecNotImplemented = fail "dec quoter not implemented"
+quoteTypeNotImplemented :: Fail.MonadFail m => String -> m a
+quoteTypeNotImplemented = fail . ("type quoter not implemented: " ++)
+
+-- TODO: narrow type & move to shared module
+quoteDecNotImplemented :: Fail.MonadFail m => String -> m a
+quoteDecNotImplemented = fail . ("dec quoter not implemented: " ++ )
 
 -- |
 -- > ghci> [$hs|\x -> (x,x)|] 42

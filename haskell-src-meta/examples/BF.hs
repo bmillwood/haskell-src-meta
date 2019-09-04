@@ -13,17 +13,18 @@ import Language.Haskell.TH.Lib
 import Language.Haskell.TH.Quote
 import Language.Haskell.TH.Syntax
 
+import qualified Control.Monad.Fail as Fail
 import           Data.Char
-import           Data.IntMap (IntMap)
-import qualified Data.IntMap as IM
+import           Data.IntMap        (IntMap)
+import qualified Data.IntMap        as IM
 
 -- TODO: narrow type & move to shared module
-quoteTypeNotImplemented :: String -> a
-quoteTypeNotImplemented = fail "type quoter not implemented"
+quoteTypeNotImplemented :: Fail.MonadFail m => String -> m a
+quoteTypeNotImplemented = fail . ("type quoter not implemented: " ++)
 
 -- TODO: narrow type & move to shared module
-quoteDecNotImplemented :: String -> a
-quoteDecNotImplemented = fail "dec quoter not implemented"
+quoteDecNotImplemented :: Fail.MonadFail m => String -> m a
+quoteDecNotImplemented = fail . ("dec quoter not implemented: " ++ )
 
 bf :: QuasiQuoter
 bf = QuasiQuoter
