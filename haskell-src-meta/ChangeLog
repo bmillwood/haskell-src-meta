@@ -1,3 +1,6 @@
+0.8.3:
+- Compatibility with GHC 8.8, by fixing MonadFail issues
+
 0.8.2:
 - Added ToExp implementation for type application
 - Added parseDecsWithMode and parseHsDeclsWithMode
