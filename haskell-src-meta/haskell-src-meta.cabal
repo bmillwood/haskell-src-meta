@@ -78,6 +78,12 @@ test-suite examples
     syb,
     template-haskell
 
+  -- this is needed to access Control.Monad.Fail on GHCs before 8.0
+  if !impl(ghc >= 8.0)
+    Build-Depends:
+      fail == 4.9.*
+
+
   other-modules:
     BF,
     Hs,
