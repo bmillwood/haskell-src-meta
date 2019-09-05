@@ -17,21 +17,25 @@ module SKI
   , cbrackP
   ) where
 
-import Data.Generics                (Data)
-import Data.Typeable                (Typeable)
-import Language.Haskell.Meta        (parseExp, parsePat)
-import Language.Haskell.Meta.Utils  (cleanNames, ppDoc, unsafeRunQ)
-import Language.Haskell.TH.Lib      hiding (parensP)
-import Language.Haskell.TH.Ppr
-import Language.Haskell.TH.Quote
-import Language.Haskell.TH.Syntax
-import Text.ParserCombinators.ReadP
-import Text.PrettyPrint             (render)
+import qualified Control.Monad.Fail           as Fail
+import           Data.Generics                (Data)
+import           Data.Typeable                (Typeable)
+import           Language.Haskell.Meta        (parseExp, parsePat)
+import           Language.Haskell.Meta.Utils  (cleanNames, ppDoc, unsafeRunQ)
+import           Language.Haskell.TH.Lib      hiding (parensP)
+import           Language.Haskell.TH.Ppr
+import           Language.Haskell.TH.Quote
+import           Language.Haskell.TH.Syntax
+import           Text.ParserCombinators.ReadP
+import           Text.PrettyPrint             (render)
 
+-- TODO: narrow type & move to shared module
+quoteTypeNotImplemented :: Fail.MonadFail m => String -> m a
+quoteTypeNotImplemented = fail . ("type quoter not implemented: " ++)
 
-quoteTypeNotImplemented = fail "type quoter not implemented"
-
-quoteDecNotImplemented = fail "dec quoter not implemented"
+-- TODO: narrow type & move to shared module
+quoteDecNotImplemented :: Fail.MonadFail m => String -> m a
+quoteDecNotImplemented = fail . ("dec quoter not implemented: " ++ )
 
 
 data SKI = S | K | I | E Exp | SKI :$ SKI

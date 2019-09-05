@@ -1,6 +1,11 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
-{-# LANGUAGE CPP             #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE CPP              #-}
+{-# LANGUAGE TemplateHaskell  #-}
+
+#if MIN_VERSION_template_haskell(2,12,0)
+{-# LANGUAGE TypeApplications #-}
+#endif
+
 -- | Tests stuff mostly by just compiling correctly
 import qualified Language.Haskell.Exts.Extension as Extension
 import qualified Language.Haskell.Exts.Parser    as Parser

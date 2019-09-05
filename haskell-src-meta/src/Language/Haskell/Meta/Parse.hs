@@ -37,8 +37,6 @@ import Language.Haskell.TH.Syntax
 import           Language.Haskell.Exts.Extension
 import           Language.Haskell.Exts.Parser           hiding
   (parseExp, parsePat, parseType)
-import           Language.Haskell.Exts.Parser
-  (ParseMode (..), ParseResult (..))
 import           Language.Haskell.Exts.Pretty
 import qualified Language.Haskell.Exts.SrcLoc           as Hs
 import qualified Language.Haskell.Exts.Syntax           as Hs

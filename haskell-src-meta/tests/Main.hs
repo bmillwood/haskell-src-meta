@@ -2,17 +2,22 @@
 
 module Main where
 
+import qualified Control.Monad.Fail              as Fail
 import qualified Language.Haskell.Exts           as Exts
 import qualified Language.Haskell.Exts.Extension as Extension
 import qualified Language.Haskell.Exts.Parser    as Parser
 import           Language.Haskell.Meta.Parse
 import qualified Language.Haskell.TH             as TH
-import           Test.Framework
-import           Test.Framework.Providers.HUnit
-import           Test.HUnit                      (Assertion, (@?=))
+-- import           Test.Framework
+-- import           Test.Framework.Providers.HUnit
+import Test.HUnit       (Assertion, (@?=))
+import Test.Tasty       (TestTree, defaultMain, testGroup)
+import Test.Tasty.HUnit (testCase)
+
+type Test = TestTree
 
 main :: IO ()
-main = defaultMain tests
+main = defaultMain (testGroup "unit" tests)
 
 tests :: [Test]
 tests = [ derivingClausesTest
@@ -44,5 +49,5 @@ roundTripDeclsWithMode mode s = do
   declsExts' <- liftEither $ parseDecsWithMode mode s >>= parseHsDeclsWithMode mode . TH.pprint
   declsExts' @?= declsExts
 
-liftEither :: Monad m => Either String a -> m a
+liftEither :: Fail.MonadFail m => Either String a -> m a
 liftEither = either fail return

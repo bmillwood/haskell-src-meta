@@ -17,15 +17,25 @@ module HsHere
   , cbrackP
   ) where
 
-import Data.Generics                (Data)
-import Data.Typeable                (Typeable)
-import Language.Haskell.Meta        (parseExp, parsePat)
-import Language.Haskell.Meta.Utils  (cleanNames)
-import Language.Haskell.TH.Lib      hiding (parensP)
-import Language.Haskell.TH.Ppr
-import Language.Haskell.TH.Quote
-import Language.Haskell.TH.Syntax
-import Text.ParserCombinators.ReadP
+import qualified Control.Monad.Fail           as Fail
+import           Data.Generics                (Data)
+import           Data.Typeable                (Typeable)
+import           Language.Haskell.Meta        (parseExp, parsePat)
+import           Language.Haskell.Meta.Utils  (cleanNames)
+import           Language.Haskell.TH.Lib      hiding (parensP)
+import           Language.Haskell.TH.Ppr
+import           Language.Haskell.TH.Quote
+import           Language.Haskell.TH.Syntax
+import           Text.ParserCombinators.ReadP
+
+-- TODO: narrow type & move to shared module
+quoteTypeNotImplemented :: Fail.MonadFail m => String -> m a
+quoteTypeNotImplemented = fail . ("type quoter not implemented: " ++)
+
+-- TODO: narrow type & move to shared module
+quoteDecNotImplemented :: Fail.MonadFail m => String -> m a
+quoteDecNotImplemented = fail . ("dec quoter not implemented: " ++ )
+
 
 data Here
   = CodeH Exp
@@ -43,8 +53,8 @@ data Here
 -- > a x = " random \"text\" "++ show (x + 1) ++"\n  something else"
 here :: QuasiQuoter
 here = QuasiQuoter
-        {quoteType = fail "The here quoter is only for expressions and patterns"
-        ,quoteDec = fail "The here quoter is only for expressions and patterns"
+        {quoteType = quoteTypeNotImplemented
+        ,quoteDec = quoteDecNotImplemented
         ,quoteExp = hereExpQ
         ,quotePat = herePatQ}
 

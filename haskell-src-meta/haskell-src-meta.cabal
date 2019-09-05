@@ -9,7 +9,7 @@ author:             Matt Morrow
 copyright:          (c) Matt Morrow
 maintainer:         danburton.email@gmail.com
 bug-reports:        https://github.com/DanBurton/haskell-src-meta/issues
-tested-with:        GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.3
+tested-with:        GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.1
 synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
                     to template-haskell abstract syntax isn't 100% complete yet.
@@ -21,7 +21,7 @@ library
                    haskell-src-exts >= 1.18 && < 1.22,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.8,
-                   template-haskell >= 2.8 && < 2.15,
+                   template-haskell >= 2.8 && < 2.16,
                    th-orphans >= 0.9.1 && < 0.14
 
   if impl(ghc < 7.8)
@@ -44,9 +44,15 @@ test-suite unit
     haskell-src-exts     >= 1.17 && < 1.22,
     haskell-src-meta,
     pretty               >= 1.0  && < 1.2,
-    template-haskell     >= 2.7  && < 2.15,
-    test-framework       >= 0.8  && < 0.9,
-    test-framework-hunit >= 0.3  && < 0.4
+    template-haskell     >= 2.7,
+    tasty,
+    tasty-hunit
+
+  -- this is needed to access Control.Monad.Fail on GHCs before 8.0
+  if !impl(ghc >= 8.0)
+    Build-Depends:
+      fail == 4.9.*
+
 
 test-suite splices
   type:             exitcode-stdio-1.0
@@ -71,6 +77,12 @@ test-suite examples
     pretty,
     syb,
     template-haskell
+
+  -- this is needed to access Control.Monad.Fail on GHCs before 8.0
+  if !impl(ghc >= 8.0)
+    Build-Depends:
+      fail == 4.9.*
+
 
   other-modules:
     BF,
