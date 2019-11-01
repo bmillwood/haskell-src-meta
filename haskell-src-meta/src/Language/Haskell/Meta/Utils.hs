@@ -67,15 +67,6 @@ instance Show TypeQ where show = show . cleanNames . unsafeRunQ
 instance Show (Q String) where show = unsafeRunQ
 instance Show (Q Doc) where show = show . unsafeRunQ
 
-#if !MIN_VERSION_th_orphans(0,12,0)
-#if MIN_VERSION_base(4,7,0)
-deriving instance Typeable Q
-#else
-deriving instance Typeable1 Q
-#endif
-deriving instance Typeable QuasiQuoter
-#endif
-
 -- | @unsafeRunQ = unsafePerformIO . runQ@
 unsafeRunQ :: Q a -> a
 unsafeRunQ = unsafePerformIO . runQ
@@ -173,18 +164,7 @@ renameT env new (ForallT ns cxt t) =
     unVarT (VarT n) = PlainTV n
     unVarT ty       = error $ "renameT: unVarT: TODO for" ++ show ty
     renamePreds = renameThings renamePred
-#if MIN_VERSION_template_haskell(2,10,0)
     renamePred = renameT
-#else
-    renamePred env new (ClassP n ts) = let
-        (ts', env', new') = renameTs env new [] ts
-      in (ClassP (normaliseName n) ts', env', new')
-
-    renamePred env new (EqualP t1 t2) = let
-        (t1', env1, new1) = renameT env new t1
-        (t2', env2, new2) = renameT env1 new1 t2
-      in (EqualP t1' t2', env2, new2)
-#endif
 renameT _ _ t = error $ "renameT: TODO for " ++ show t
 
 -- | Remove qualification, etc.

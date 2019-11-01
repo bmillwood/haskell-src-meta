@@ -9,7 +9,7 @@ author:             Matt Morrow
 copyright:          (c) Matt Morrow
 maintainer:         danburton.email@gmail.com
 bug-reports:        https://github.com/DanBurton/haskell-src-meta/issues
-tested-with:        GHC == 7.6.3, GHC == 7.8.4, GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.1
+tested-with:        GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.1
 synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
                     to template-haskell abstract syntax isn't 100% complete yet.
@@ -17,12 +17,12 @@ description:        The translation from haskell-src-exts abstract syntax
 extra-source-files: ChangeLog README.md
 
 library
-  build-depends:   base >= 4.6 && < 5,
-                   haskell-src-exts >= 1.18 && < 1.22,
+  build-depends:   base >= 4.8 && < 5,
+                   haskell-src-exts >= 1.18 && < 1.23,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.8,
-                   template-haskell >= 2.8 && < 2.16,
-                   th-orphans >= 0.9.1 && < 0.14
+                   template-haskell >= 2.10 && < 2.16,
+                   th-orphans >= 0.12 && < 0.14
 
   if impl(ghc < 7.8)
     build-depends: safe <= 0.3.9
@@ -39,12 +39,12 @@ test-suite unit
   main-is:          Main.hs
 
   build-depends:
-    HUnit                >= 1.2  && < 1.7,
-    base                 >= 4.5  && < 5,
-    haskell-src-exts     >= 1.17 && < 1.22,
+    HUnit                >= 1.2,
+    base                 >= 4.5,
+    haskell-src-exts     >= 1.17,
     haskell-src-meta,
-    pretty               >= 1.0  && < 1.2,
-    template-haskell     >= 2.7,
+    pretty               >= 1.0,
+    template-haskell     >= 2.10,
     tasty,
     tasty-hunit
 

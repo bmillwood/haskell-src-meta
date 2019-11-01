@@ -1,9 +1,15 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# LANGUAGE CPP              #-}
 {-# LANGUAGE TemplateHaskell  #-}
+{-# LANGUAGE GADTs #-}
 
 #if MIN_VERSION_template_haskell(2,12,0)
 {-# LANGUAGE TypeApplications #-}
+#endif
+
+#if MIN_VERSION_template_haskell(2,14,0)
+{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 #endif
 
 -- | Tests stuff mostly by just compiling correctly
@@ -58,6 +64,22 @@ $(either error return $ Meta.parseDecs $ unlines
    ,"tenStr = show (10 :: Int)"])
 #endif
 
+#if MIN_VERSION_template_haskell(2,14,0)
+$(either error return $ Meta.parseDecsWithMode
+  (Parser.defaultParseMode { Parser.extensions = [Extension.EnableExtension Extension.QuantifiedConstraints, Extension.EnableExtension Extension.ExplicitForAll] })
+  $ unlines
+  ["class (forall a. Eq a => Eq (f a)) => Eq1 f where"
+  ,"  eq1 :: f Int -> f Int -> Bool"
+  ,"  eq1 = (==)"
+  ,""
+  ,"instance Eq1 []"])
+#endif
+
+$(either error return $ Meta.parseDecsWithMode
+  (Parser.defaultParseMode { Parser.extensions = [Extension.EnableExtension Extension.GADTs] })
+  $ unlines
+   ["intConstraint :: (a ~ Int) => a"
+   ,"intConstraint = 3"])
 
 -- Just to check that it works as intended
 main :: IO ()
@@ -68,4 +90,6 @@ main = do
   (1,2) <- return pair
   (True,1) <- return $ mymethod True 1
   "10" <- return tenStr
+  3 <- return intConstraint
+  True <- return $ eq1 [1] [1]
   return ()

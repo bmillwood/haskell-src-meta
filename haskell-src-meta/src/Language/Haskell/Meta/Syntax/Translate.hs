@@ -402,11 +402,7 @@ instance ToType (Exts.Type l) where
     Exts.PromotedList _ _q ts -> foldr (\t pl -> TH.PromotedConsT `TH.AppT` toType t `TH.AppT` pl) TH.PromotedNilT ts
     Exts.PromotedTuple _ ts -> foldr (\t pt -> pt `TH.AppT` toType t) (TH.PromotedTupleT $ length ts) ts
     Exts.PromotedUnit _ -> TH.PromotedT ''()
-#if MIN_VERSION_template_haskell(2,10,0)
   toType (Exts.TyEquals _ t1 t2) = TH.EqualityT `TH.AppT` toType t1 `TH.AppT` toType t2
-#else
-  toType t@Exts.TyEquals{} = noTHyet "toType" "2.10.0" t
-#endif
   toType t@Exts.TySplice{} = noTH "toType" t
   toType t@Exts.TyBang{} =
     nonsense "toType" "type cannot have strictness annotations in this context" t
@@ -446,18 +442,16 @@ toStrictType x = (TH.NotStrict, toType x)
 a .->. b = TH.AppT (TH.AppT TH.ArrowT a) b
 
 instance ToPred (Exts.Asst l) where
-#if MIN_VERSION_template_haskell(2,10,0)
+#if MIN_VERSION_haskell_src_exts(1,22,0)
+    toPred (Exts.TypeA _ t) = toType t
+#else
     toPred (Exts.ClassA _ n ts) = List.foldl' TH.AppT (TH.ConT (toName n)) (fmap toType ts)
     toPred (Exts.InfixA _ t1 n t2) = List.foldl' TH.AppT (TH.ConT (toName n)) (fmap toType [t1,t2])
     toPred (Exts.EqualP _ t1 t2) = List.foldl' TH.AppT TH.EqualityT (fmap toType [t1,t2])
-#else
-    toPred (Exts.ClassA _ n ts) = TH.ClassP (toName n) (fmap toType ts)
-    toPred (Exts.InfixA _ t1 n t2) = TH.ClassP (toName n) (fmap toType [t1, t2])
-    toPred (Exts.EqualP _ t1 t2) = TH.EqualP (toType t1) (toType t2)
-#endif
-    toPred (Exts.ParenA _ asst) = toPred asst
     toPred a@Exts.AppA{} = todo "toPred" a
     toPred a@Exts.WildCardA{} = todo "toPred" a
+#endif
+    toPred (Exts.ParenA _ asst) = toPred asst
     toPred a@Exts.IParam{} = noTH "toPred" a
     -- Pattern match is redundant.
     -- TODO: Is there a way to turn off this warn for catch-alls?
