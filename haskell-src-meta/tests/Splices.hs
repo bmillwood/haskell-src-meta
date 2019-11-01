@@ -1,14 +1,14 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
-{-# LANGUAGE CPP              #-}
-{-# LANGUAGE TemplateHaskell  #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE TemplateHaskell       #-}
 
 #if MIN_VERSION_template_haskell(2,12,0)
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeApplications      #-}
 #endif
 
 #if MIN_VERSION_template_haskell(2,14,0)
-{-# LANGUAGE ExplicitForAll #-}
+{-# LANGUAGE ExplicitForAll        #-}
 {-# LANGUAGE QuantifiedConstraints #-}
 #endif
 
