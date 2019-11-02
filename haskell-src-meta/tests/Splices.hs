@@ -1,9 +1,15 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
-{-# LANGUAGE CPP              #-}
-{-# LANGUAGE TemplateHaskell  #-}
+{-# LANGUAGE CPP                   #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE TemplateHaskell       #-}
 
 #if MIN_VERSION_template_haskell(2,12,0)
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeApplications      #-}
+#endif
+
+#if MIN_VERSION_template_haskell(2,14,0)
+{-# LANGUAGE ExplicitForAll        #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 #endif
 
 -- | Tests stuff mostly by just compiling correctly
@@ -58,6 +64,32 @@ $(either error return $ Meta.parseDecs $ unlines
    ,"tenStr = show (10 :: Int)"])
 #endif
 
+#if MIN_VERSION_template_haskell(2,14,0)
+$(either error return $ Meta.parseDecsWithMode
+  (Parser.defaultParseMode { Parser.extensions = [Extension.EnableExtension Extension.QuantifiedConstraints, Extension.EnableExtension Extension.ExplicitForAll] })
+  $ unlines
+  ["class (forall a. Eq a => Eq (f a)) => Eq1 f where"
+  ,"  eq1 :: f Int -> f Int -> Bool"
+  ,"  eq1 = (==)"
+  ,""
+  ,"instance Eq1 []"])
+#else
+$(either error return $ Meta.parseDecs $ unlines
+  ["eq1 :: [Int] -> [Int] -> Bool"
+  ,"eq1 = (==)"])
+#endif
+
+$(either error return $ Meta.parseDecsWithMode
+  (Parser.defaultParseMode { Parser.extensions = [Extension.EnableExtension Extension.GADTs] })
+  $ unlines
+   [
+-- Not sure why but ghc 7.10 complains that "type var a is not in scope"
+#if MIN_VERSION_template_haskell(2,11,0)
+   "intConstraint :: (a ~ Int) => a"
+#else
+   "intConstraint :: Int"
+#endif
+   ,"intConstraint = 3"])
 
 -- Just to check that it works as intended
 main :: IO ()
@@ -68,4 +100,6 @@ main = do
   (1,2) <- return pair
   (True,1) <- return $ mymethod True 1
   "10" <- return tenStr
+  3 <- return intConstraint
+  True <- return $ eq1 [1] [1]
   return ()

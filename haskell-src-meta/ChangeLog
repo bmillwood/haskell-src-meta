@@ -1,3 +1,7 @@
+0.8.4:
+- Bump base and template-haskell library to versions shipped with GHC 7.10
+- Compatibility with haskell-src-exts 1.22
+
 0.8.3:
 - Compatibility with GHC 8.8, by fixing MonadFail issues
 
@@ -6,7 +10,7 @@
 - Added parseDecsWithMode and parseHsDeclsWithMode
 
 0.8.1:
-- Compatible with GHC 8.6, haskell-src-exts 1.22
+- Compatibility with GHC 8.6, haskell-src-exts 1.21
 
 0.8.0.1:
 - Bump base and template-haskell library to versions shipped with GHC 7.6.
