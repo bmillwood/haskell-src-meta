@@ -73,6 +73,10 @@ $(either error return $ Meta.parseDecsWithMode
   ,"  eq1 = (==)"
   ,""
   ,"instance Eq1 []"])
+#else
+$(either error return $ Meta.parseDecs $ unlines
+  ["eq1 :: Eq (f Int) => f Int -> f Int -> Int"
+  ,"eq1 = (==)"])
 #endif
 
 $(either error return $ Meta.parseDecsWithMode
