@@ -82,7 +82,13 @@ $(either error return $ Meta.parseDecs $ unlines
 $(either error return $ Meta.parseDecsWithMode
   (Parser.defaultParseMode { Parser.extensions = [Extension.EnableExtension Extension.GADTs] })
   $ unlines
-   ["intConstraint :: (a ~ Int) => a"
+   [
+-- Not sure why but ghc 7.10 complains that "type var a is not in scope"
+#if MIN_VERSION_template_haskell(2,11,0)
+   "intConstraint :: (a ~ Int) => a"
+#else
+   "intConstraint :: Int"
+#endif
    ,"intConstraint = 3"])
 
 -- Just to check that it works as intended
