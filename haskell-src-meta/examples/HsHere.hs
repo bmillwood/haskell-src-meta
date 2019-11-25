@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 
+{-# LANGUAGE CPP                #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE PatternGuards      #-}
 {-# LANGUAGE TemplateHaskell    #-}
@@ -58,8 +59,11 @@ here = QuasiQuoter
         ,quoteExp = hereExpQ
         ,quotePat = herePatQ}
 
-instance Lift Here
-  where lift = liftHere
+instance Lift Here where
+  lift = liftHere
+#if MIN_VERSION_template_haskell(2,16,0)
+  liftTyped = unsafeTExpCoerce . lift -- TODO: the right way?
+#endif
 
 liftHere :: Here -> ExpQ
 liftHere (TextH s)  = (litE . stringL) s

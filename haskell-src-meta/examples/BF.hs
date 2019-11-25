@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-name-shadowing #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 {-# LANGUAGE BangPatterns    #-}
+{-# LANGUAGE CPP             #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module BF (
@@ -65,6 +66,19 @@ instance Lift Bf where
   lift MovL       = [|MovL|]
   lift MovR       = [|MovR|]
   lift (While xs) = [|While $(lift xs)|]
+
+#if MIN_VERSION_template_haskell(2,16,0)
+  liftTyped = unsafeTExpCoerce . lift
+  -- TODO: get stylish haskell to be happy w/ the below
+  -- liftTyped Inp        = [||Inp||]
+  -- liftTyped Out        = [||Out||]
+  -- liftTyped Inc        = [||Inc||]
+  -- liftTyped Dec        = [||Dec||]
+  -- liftTyped MovL       = [||MovL||]
+  -- liftTyped MovR       = [||MovR||]
+  -- liftTyped (While xs) = [||While $$(liftTyped xs)||]
+#endif
+
 
 type Ptr = Int
 newtype Mem = Mem (IntMap Int) deriving (Show)
