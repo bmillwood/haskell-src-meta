@@ -4,6 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 
+{-# LANGUAGE CPP                #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE PatternGuards      #-}
 {-# LANGUAGE TemplateHaskell    #-}
@@ -70,6 +71,9 @@ ski = QuasiQuoter
 
 instance Lift SKI where
   lift = liftSKI
+#if MIN_VERSION_template_haskell(2,16,0)
+  liftTyped = unsafeTExpCoerce . lift -- TODO: the right way?
+#endif
 
 liftSKI (E e) = return e
 liftSKI a     = go a

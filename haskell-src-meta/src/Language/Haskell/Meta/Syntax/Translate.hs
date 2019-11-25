@@ -75,6 +75,14 @@ nonsense :: (Functor f, Show (f ())) => String -> String -> f e -> a
 nonsense fun inparticular thing = error . concat $ [moduleName, ".", fun,
   ": nonsensical: ", inparticular, ": ", show (fmap (const ()) thing)]
 
+#if MIN_VERSION_template_haskell(2,16,0)
+toTupEl :: ToExp a => a -> Maybe TH.Exp
+toTupEl = Just . toExp
+#else
+toTupEl :: ToExp a => a -> TH.Exp
+toTupEl = toExp
+#endif
+
 -----------------------------------------------------------------------------
 
 
@@ -83,11 +91,11 @@ instance ToExp TH.Lit where
 instance (ToExp a) => ToExp [a] where
   toExp = TH.ListE . fmap toExp
 instance (ToExp a, ToExp b) => ToExp (a,b) where
-  toExp (a,b) = TH.TupE [toExp a, toExp b]
+  toExp (a,b) = TH.TupE [toTupEl a, toTupEl b]
 instance (ToExp a, ToExp b, ToExp c) => ToExp (a,b,c) where
-  toExp (a,b,c) = TH.TupE [toExp a, toExp b, toExp c]
+  toExp (a,b,c) = TH.TupE [toTupEl a, toTupEl b, toTupEl c]
 instance (ToExp a, ToExp b, ToExp c, ToExp d) => ToExp (a,b,c,d) where
-  toExp (a,b,c,d) = TH.TupE [toExp a, toExp b, toExp c, toExp d]
+  toExp (a,b,c,d) = TH.TupE [toTupEl a, toTupEl b, toTupEl c, toTupEl d]
 
 
 instance ToPat TH.Lit where
@@ -273,8 +281,8 @@ instance ToExp (Exts.Exp l) where
   toExp (Exts.Case _ e alts)           = TH.CaseE (toExp e) (map toMatch alts)
   toExp (Exts.Do _ ss)                 = TH.DoE (map toStmt ss)
   toExp e@Exts.MDo{}                   = noTH "toExp" e
-  toExp (Exts.Tuple _ Exts.Boxed xs)   = TH.TupE (fmap toExp xs)
-  toExp (Exts.Tuple _ Exts.Unboxed xs) = TH.UnboxedTupE (fmap toExp xs)
+  toExp (Exts.Tuple _ Exts.Boxed xs)   = TH.TupE (fmap toTupEl xs)
+  toExp (Exts.Tuple _ Exts.Unboxed xs) = TH.UnboxedTupE (fmap toTupEl xs)
   toExp e@Exts.TupleSection{}          = noTH "toExp" e
   toExp (Exts.List _ xs)               = TH.ListE (fmap toExp xs)
   toExp (Exts.Paren _ e)               = TH.ParensE (toExp e)
