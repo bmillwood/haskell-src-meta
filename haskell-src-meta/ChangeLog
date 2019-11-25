@@ -1,3 +1,6 @@
+0.8.5:
+- Compatibility with template-haskell shipped with GHC 8.10
+
 0.8.4:
 - Bump base and template-haskell library to versions shipped with GHC 7.10
 - Compatibility with haskell-src-exts 1.22
