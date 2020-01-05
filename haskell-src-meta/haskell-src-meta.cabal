@@ -18,7 +18,7 @@ extra-source-files: ChangeLog README.md
 
 library
   build-depends:   base >= 4.8 && < 5,
-                   haskell-src-exts >= 1.18 && < 1.23,
+                   haskell-src-exts >= 1.18 && < 1.24,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.8,
                    template-haskell >= 2.10 && < 2.17,
