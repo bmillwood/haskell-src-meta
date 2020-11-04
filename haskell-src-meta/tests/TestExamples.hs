@@ -6,7 +6,7 @@ import qualified Hs
 import qualified HsHere
 import qualified SKI
 
-import SKI (SKI ((:$), I, K, S))
+import SKI (SKI (I, K, S, (:$)))
 
 -- Very dumb test framework
 shouldBe :: (Show a, Eq a) => a -> a -> IO ()
