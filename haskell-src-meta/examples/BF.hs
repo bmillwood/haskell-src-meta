@@ -67,7 +67,9 @@ instance Lift Bf where
   lift MovR       = [|MovR|]
   lift (While xs) = [|While $(lift xs)|]
 
-#if MIN_VERSION_template_haskell(2,16,0)
+#if MIN_VERSION_template_haskell(2,17,0)
+  liftTyped = unsafeCodeCoerce . lift
+#elif MIN_VERSION_template_haskell(2,16,0)
   liftTyped = unsafeTExpCoerce . lift
   -- TODO: get stylish haskell to be happy w/ the below
   -- liftTyped Inp        = [||Inp||]

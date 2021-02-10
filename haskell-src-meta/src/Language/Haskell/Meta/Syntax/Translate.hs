@@ -20,10 +20,16 @@ import qualified Data.Char                    as Char
 import qualified Data.List                    as List
 import qualified Language.Haskell.Exts.SrcLoc as Exts.SrcLoc
 import qualified Language.Haskell.Exts.Syntax as Exts
+import qualified Language.Haskell.TH.Lib      as TH
 import qualified Language.Haskell.TH.Syntax   as TH
 
 -----------------------------------------------------------------------------
 
+#if MIN_VERSION_template_haskell(2,17,0)
+type TyVarBndr_ flag = TH.TyVarBndr flag
+#else
+type TyVarBndr_ flag = TH.TyVarBndr
+#endif
 
 class ToName a where toName :: a -> TH.Name
 class ToNames a where toNames :: a -> [TH.Name]
@@ -37,7 +43,7 @@ class ToStmt a where toStmt :: a -> TH.Stmt
 class ToLoc  a where toLoc  :: a -> TH.Loc
 class ToCxt  a where toCxt  :: a -> TH.Cxt
 class ToPred a where toPred :: a -> TH.Pred
-class ToTyVars a where toTyVars :: a -> [TH.TyVarBndr]
+class ToTyVars a where toTyVars :: a -> [TyVarBndr_ ()]
 class ToMaybeKind a where toMaybeKind :: a -> Maybe TH.Kind
 #if MIN_VERSION_template_haskell(2,11,0)
 class ToInjectivityAnn a where toInjectivityAnn :: a -> TH.InjectivityAnn
@@ -279,7 +285,11 @@ instance ToExp (Exts.Exp l) where
   toExp (Exts.If _ a b c)              = TH.CondE (toExp a) (toExp b) (toExp c)
   toExp (Exts.MultiIf _ ifs)           = TH.MultiIfE (map toGuard ifs)
   toExp (Exts.Case _ e alts)           = TH.CaseE (toExp e) (map toMatch alts)
+#if MIN_VERSION_template_haskell(2,17,0)
+  toExp (Exts.Do _ ss)                 = TH.DoE Nothing (map toStmt ss)
+#else
   toExp (Exts.Do _ ss)                 = TH.DoE (map toStmt ss)
+#endif
   toExp e@Exts.MDo{}                   = noTH "toExp" e
   toExp (Exts.Tuple _ Exts.Boxed xs)   = TH.TupE (fmap toTupEl xs)
   toExp (Exts.Tuple _ Exts.Unboxed xs) = TH.UnboxedTupE (fmap toTupEl xs)
@@ -347,9 +357,14 @@ instance ToName (Exts.TyVarBind l) where
 instance ToName TH.Name where
   toName = id
 
-instance ToName TH.TyVarBndr where
+instance ToName (TyVarBndr_ flag) where
+#if MIN_VERSION_template_haskell(2,17,0)
+  toName (TH.PlainTV n _)    = n
+  toName (TH.KindedTV n _ _) = n
+#else
   toName (TH.PlainTV n)    = n
   toName (TH.KindedTV n _) = n
+#endif
 
 #if !MIN_VERSION_haskell_src_exts(1,21,0)
 instance ToType (Exts.Kind l) where
@@ -375,12 +390,26 @@ instance ToType (Exts.Kind l) where
 toKind :: Exts.Kind l -> TH.Kind
 toKind = toType
 
-toTyVar :: Exts.TyVarBind l -> TH.TyVarBndr
+toTyVar :: Exts.TyVarBind l -> TyVarBndr_ ()
+#if MIN_VERSION_template_haskell(2,17,0)
+toTyVar (Exts.KindedVar _ n k) = TH.KindedTV (toName n) () (toKind k)
+toTyVar (Exts.UnkindedVar _ n) = TH.PlainTV (toName n) ()
+#else
 toTyVar (Exts.KindedVar _ n k) = TH.KindedTV (toName n) (toKind k)
 toTyVar (Exts.UnkindedVar _ n) = TH.PlainTV (toName n)
+#endif
+
+#if MIN_VERSION_template_haskell(2,17,0)
+toTyVarSpec :: TyVarBndr_ () -> TH.TyVarBndrSpec
+toTyVarSpec (TH.KindedTV n () k) = TH.KindedTV n TH.SpecifiedSpec k
+toTyVarSpec (TH.PlainTV n ()) = TH.PlainTV n TH.SpecifiedSpec
+#else
+toTyVarSpec :: TyVarBndr_ flag -> TyVarBndr_ flag
+toTyVarSpec = id
+#endif
 
 instance ToType (Exts.Type l) where
-  toType (Exts.TyForall _ tvbM cxt t) = TH.ForallT (maybe [] (fmap toTyVar) tvbM) (toCxt cxt) (toType t)
+  toType (Exts.TyForall _ tvbM cxt t) = TH.ForallT (maybe [] (fmap (toTyVarSpec . toTyVar)) tvbM) (toCxt cxt) (toType t)
   toType (Exts.TyFun _ a b) = toType a .->. toType b
   toType (Exts.TyList _ t) = TH.ListT `TH.AppT` toType t
   toType (Exts.TyTuple _ b ts) = foldAppT (tuple . length $ ts) (fmap toType ts)
@@ -713,7 +742,7 @@ instance ToType (Exts.InstHead l) where
 
 qualConDeclToCon :: Exts.QualConDecl l -> TH.Con
 qualConDeclToCon (Exts.QualConDecl _ Nothing Nothing cdecl) = conDeclToCon cdecl
-qualConDeclToCon (Exts.QualConDecl _ ns cxt cdecl) = TH.ForallC (toTyVars ns)
+qualConDeclToCon (Exts.QualConDecl _ ns cxt cdecl) = TH.ForallC (toTyVarSpec <$> toTyVars ns)
                                                     (toCxt cxt)
                                                     (conDeclToCon cdecl)
 
