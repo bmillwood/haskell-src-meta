@@ -84,7 +84,8 @@ myDefaultExtensions = [PostfixOperators
                       ,TemplateHaskell
                       ,RankNTypes
                       ,MultiParamTypeClasses
-                      ,RecursiveDo]
+                      ,RecursiveDo
+                      ,TypeApplications]
 
 parseResultToEither :: ParseResult a -> Either String a
 parseResultToEither (ParseOk a) = Right a
