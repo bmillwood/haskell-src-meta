@@ -1,0 +1,10 @@
+resolver: lts-17.4
+compiler: ghc-9.0.1
+packages:
+- haskell-src-meta
+extra-deps:
+- git: https://github.com/mgsloan/th-expand-syns.git
+  commit: 6a64927ebd6b85cc3c67c00c88c3c7c019d31573
+  # ^ branch: th-2.17
+ghc-options:
+  "$locals": -Wall -Wcompat -Werror
