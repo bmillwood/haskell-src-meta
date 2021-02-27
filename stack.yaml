@@ -1,7 +1,5 @@
-resolver: nightly-2020-01-05
+resolver: lts-17.4
 packages:
 - haskell-src-meta
-extra-deps:
-- haskell-src-exts-1.23.0
 ghc-options:
   "$locals": -Wall -Wcompat -Werror
