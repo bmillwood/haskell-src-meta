@@ -60,15 +60,15 @@ here = QuasiQuoter
         ,quotePat = herePatQ}
 
 instance Lift Here where
-  lift = liftHere
-#if MIN_VERSION_template_haskell(2,16,0)
+  lift (TextH s)  = (litE . stringL) s
+  lift (CodeH e)  = [|show $(return e)|]
+  lift (ManyH hs) = [|concat $(listE (fmap lift hs))|]
+
+#if MIN_VERSION_template_haskell(2,17,0)
+  liftTyped = unsafeCodeCoerce . lift
+#elif MIN_VERSION_template_haskell(2,16,0)
   liftTyped = unsafeTExpCoerce . lift -- TODO: the right way?
 #endif
-
-liftHere :: Here -> ExpQ
-liftHere (TextH s)  = (litE . stringL) s
-liftHere (CodeH e)  = [|show $(return e)|]
-liftHere (ManyH hs) = [|concat $(listE (fmap liftHere hs))|]
 
 
 hereExpQ :: String -> ExpQ
