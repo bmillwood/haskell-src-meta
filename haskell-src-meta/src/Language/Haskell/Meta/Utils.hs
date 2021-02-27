@@ -161,7 +161,11 @@ renameT env new (ForallT ns cxt t) =
         (t',env4,new4) = renameT env3 new3 t
     in (ForallT ns'' cxt' t', env4, new4)
   where
+#if MIN_VERSION_template_haskell(2,17,0)
+    unVarT (VarT n) = PlainTV n SpecifiedSpec
+#else
     unVarT (VarT n) = PlainTV n
+#endif
     unVarT ty       = error $ "renameT: unVarT: TODO for" ++ show ty
     renamePreds = renameThings renamePred
     renamePred = renameT
@@ -230,7 +234,7 @@ decCons (NewtypeD _ _ _ con _)   = [con]
 decCons _                        = []
 
 
-decTyVars :: Dec -> [TyVarBndr]
+decTyVars :: Dec -> [TyVarBndr_ ()]
 #if MIN_VERSION_template_haskell(2,11,0)
 decTyVars (DataD _ _ ns _ _ _)    = ns
 decTyVars (NewtypeD _ _ ns _ _ _) = ns

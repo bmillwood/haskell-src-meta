@@ -22,7 +22,7 @@ library
                    haskell-src-exts >= 1.18 && < 1.24,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.8,
-                   template-haskell >= 2.10 && < 2.17,
+                   template-haskell >= 2.10 && < 2.18,
                    th-orphans >= 0.12 && < 0.14
 
   if impl(ghc < 7.8)
