@@ -1,3 +1,6 @@
+0.8.7:
+- Compatibility with template-haskell shipped with GHC 9.0
+
 0.8.6:
 - Add TypeApplications to default extensions
 
