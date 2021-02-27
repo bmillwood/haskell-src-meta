@@ -1,3 +1,6 @@
+NEXT:
+- Add TypeApplications to default extensions
+
 0.8.5:
 - Compatibility with template-haskell shipped with GHC 8.10
 
