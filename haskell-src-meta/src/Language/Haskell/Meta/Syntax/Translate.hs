@@ -14,22 +14,19 @@
 
 module Language.Haskell.Meta.Syntax.Translate (
     module Language.Haskell.Meta.Syntax.Translate
+  , TyVarBndr_
 ) where
 
-import qualified Data.Char                    as Char
-import qualified Data.List                    as List
-import qualified Language.Haskell.Exts.SrcLoc as Exts.SrcLoc
-import qualified Language.Haskell.Exts.Syntax as Exts
-import qualified Language.Haskell.TH.Lib      as TH
-import qualified Language.Haskell.TH.Syntax   as TH
+import qualified Data.Char                      as Char
+import qualified Data.List                      as List
+import qualified Language.Haskell.Exts.SrcLoc   as Exts.SrcLoc
+import qualified Language.Haskell.Exts.Syntax   as Exts
+import           Language.Haskell.Meta.THCompat (TyVarBndr_)
+import qualified Language.Haskell.Meta.THCompat as Compat
+import qualified Language.Haskell.TH.Lib        as TH
+import qualified Language.Haskell.TH.Syntax     as TH
 
 -----------------------------------------------------------------------------
-
-#if MIN_VERSION_template_haskell(2,17,0)
-type TyVarBndr_ flag = TH.TyVarBndr flag
-#else
-type TyVarBndr_ flag = TH.TyVarBndr
-#endif
 
 class ToName a where toName :: a -> TH.Name
 class ToNames a where toNames :: a -> [TH.Name]
@@ -208,7 +205,6 @@ instance ToLit (Exts.Literal l) where
 
 -- * ToPat HsPat
 
-
 instance ToPat (Exts.Pat l) where
   toPat (Exts.PVar _ n)
     = TH.VarP (toName n)
@@ -222,7 +218,7 @@ instance ToPat (Exts.Pat l) where
     TH.DoublePrimL r'' -> TH.DoublePrimL (negate r'')
     _                  -> nonsense "toPat" "negating wrong kind of literal" l
   toPat (Exts.PInfixApp _ p n q) = TH.UInfixP (toPat p) (toName n) (toPat q)
-  toPat (Exts.PApp _ n ps) = TH.ConP (toName n) (fmap toPat ps)
+  toPat (Exts.PApp _ n ps) = Compat.conP (toName n) (fmap toPat ps)
   toPat (Exts.PTuple _ Exts.Boxed ps) = TH.TupP (fmap toPat ps)
   toPat (Exts.PTuple _ Exts.Unboxed ps) = TH.UnboxedTupP (fmap toPat ps)
   toPat (Exts.PList _ ps) = TH.ListP (fmap toPat ps)
@@ -357,13 +353,13 @@ instance ToName (Exts.TyVarBind l) where
 instance ToName TH.Name where
   toName = id
 
-instance ToName (TyVarBndr_ flag) where
+instance ToName (Compat.TyVarBndr_ flag) where
 #if MIN_VERSION_template_haskell(2,17,0)
   toName (TH.PlainTV n _)    = n
   toName (TH.KindedTV n _ _) = n
 #else
-  toName (TH.PlainTV n)    = n
-  toName (TH.KindedTV n _) = n
+  toName (TH.PlainTV n)      = n
+  toName (TH.KindedTV n _)   = n
 #endif
 
 #if !MIN_VERSION_haskell_src_exts(1,21,0)
@@ -402,7 +398,7 @@ toTyVar (Exts.UnkindedVar _ n) = TH.PlainTV (toName n)
 #if MIN_VERSION_template_haskell(2,17,0)
 toTyVarSpec :: TyVarBndr_ () -> TH.TyVarBndrSpec
 toTyVarSpec (TH.KindedTV n () k) = TH.KindedTV n TH.SpecifiedSpec k
-toTyVarSpec (TH.PlainTV n ()) = TH.PlainTV n TH.SpecifiedSpec
+toTyVarSpec (TH.PlainTV n ())    = TH.PlainTV n TH.SpecifiedSpec
 #else
 toTyVarSpec :: TyVarBndr_ flag -> TyVarBndr_ flag
 toTyVarSpec = id
