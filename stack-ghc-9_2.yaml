@@ -1,0 +1,6 @@
+resolver: nightly-2022-01-14
+compiler: ghc-9.2.1
+packages:
+- haskell-src-meta
+ghc-options:
+  "$locals": -Wall -Wcompat -Werror
