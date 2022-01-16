@@ -42,17 +42,9 @@ class ToCxt  a where toCxt  :: a -> TH.Cxt
 class ToPred a where toPred :: a -> TH.Pred
 class ToTyVars a where toTyVars :: a -> [TyVarBndr_ ()]
 class ToMaybeKind a where toMaybeKind :: a -> Maybe TH.Kind
-#if MIN_VERSION_template_haskell(2,11,0)
 class ToInjectivityAnn a where toInjectivityAnn :: a -> TH.InjectivityAnn
-#endif
 
-#if MIN_VERSION_template_haskell(2,12,0)
 type DerivClause = TH.DerivClause
-#elif MIN_VERSION_template_haskell(2,11,0)
-type DerivClause = TH.Pred
-#else
-type DerivClause = TH.Name
-#endif
 
 class ToDerivClauses a where toDerivClauses :: a -> [DerivClause]
 
@@ -269,11 +261,7 @@ instance ToExp (Exts.Exp l) where
   toExp (Exts.Con _ n)                 = TH.ConE (toName n)
   toExp (Exts.Lit _ l)                 = TH.LitE (toLit l)
   toExp (Exts.InfixApp _ e o f)        = TH.UInfixE (toExp e) (toExp o) (toExp f)
-#if MIN_VERSION_template_haskell(2,12,0)
   toExp (Exts.App _ e (Exts.TypeApp _ t)) = TH.AppTypeE (toExp e) (toType t)
-#else
-  toExp (Exts.App _ _ e@Exts.TypeApp{}) = noTHyet "toExp" "2.12.0" e
-#endif
   toExp (Exts.App _ e f)               = TH.AppE (toExp e) (toExp f)
   toExp (Exts.NegApp _ e)              = TH.AppE (TH.VarE 'negate) (toExp e)
   toExp (Exts.Lambda _ ps e)           = TH.LamE (fmap toPat ps) (toExp e)
@@ -447,7 +435,6 @@ instance ToType (Exts.Type l) where
   -- toType (Exts.TyInfix _ _ (Exts.PromotedName _ _) _)
 
 toStrictType :: Exts.Type l -> TH.StrictType
-#if MIN_VERSION_template_haskell(2,11,0)
 toStrictType (Exts.TyBang _ s u t) = (TH.Bang (toUnpack u) (toStrict s), toType t)
     where
       toStrict (Exts.LazyTy _)        = TH.SourceLazy
@@ -457,19 +444,6 @@ toStrictType (Exts.TyBang _ s u t) = (TH.Bang (toUnpack u) (toStrict s), toType 
       toUnpack (Exts.NoUnpack _)       = TH.SourceNoUnpack
       toUnpack (Exts.NoUnpackPragma _) = TH.NoSourceUnpackedness
 toStrictType x = (TH.Bang TH.NoSourceUnpackedness TH.NoSourceStrictness, toType x)
-#else
--- TODO: what is this comment? Outdated?
--- TyBang l (BangType l) (Unpackedness l) (Type l)
--- data BangType l = BangedTy l        | LazyTy l | NoStrictAnnot l
--- data Unpackedness l = Unpack l | NoUnpack l | NoUnpackPragma l
-toStrictType (Exts.TyBang _ b u t) = (toStrict b u, toType t)
-    where
-      toStrict :: Exts.BangType l -> Exts.Unpackedness l -> TH.Strict
-      toStrict (Exts.BangedTy _) _ = TH.IsStrict
-      toStrict _ (Exts.Unpack _)   = TH.Unpacked
-      toStrict _ _                 = TH.NotStrict
-toStrictType x = (TH.NotStrict, toType x)
-#endif
 
 (.->.) :: TH.Type -> TH.Type -> TH.Type
 a .->. b = TH.AppT (TH.AppT TH.ArrowT a) b
@@ -492,25 +466,10 @@ instance ToPred (Exts.Asst l) where
     -- toPred p = todo "toPred" p
 
 instance ToDerivClauses (Exts.Deriving l) where
-#if MIN_VERSION_template_haskell(2,12,0)
 #if MIN_VERSION_haskell_src_exts(1,20,0)
   toDerivClauses (Exts.Deriving _ strat irules) = [TH.DerivClause (fmap toDerivStrategy strat) (map toType irules)]
 #else
   toDerivClauses (Exts.Deriving _ irules) = [TH.DerivClause Nothing (map toType irules)]
-#endif
-#elif MIN_VERSION_template_haskell(2,11,0)
-#if MIN_VERSION_haskell_src_exts(1,20,0)
-  toDerivClauses (Exts.Deriving _ _ irules) = map toType irules
-#else
-  toDerivClauses (Exts.Deriving _ irules) = map toType irules
-#endif
-#else
--- template-haskell < 2.11
-#if MIN_VERSION_haskell_src_exts(1,20,0)
-  toDerivClauses (Exts.Deriving _ _ irules) = concatMap toNames irules
-#else
-  toDerivClauses (Exts.Deriving _ irules) = concatMap toNames irules
-#endif
 #endif
 
 instance ToDerivClauses a => ToDerivClauses (Maybe a) where
@@ -521,19 +480,14 @@ instance ToDerivClauses a => ToDerivClauses [a] where
   toDerivClauses = concatMap toDerivClauses
 
 
-#if MIN_VERSION_template_haskell(2,12,0) && MIN_VERSION_haskell_src_exts(1,20,0)
 toDerivStrategy :: (Exts.DerivStrategy l) -> TH.DerivStrategy
 toDerivStrategy (Exts.DerivStock _)    = TH.StockStrategy
 toDerivStrategy (Exts.DerivAnyclass _) = TH.AnyclassStrategy
 toDerivStrategy (Exts.DerivNewtype _)  = TH.NewtypeStrategy
-#if MIN_VERSION_haskell_src_exts(1,21,0)
-#if MIN_VERSION_template_haskell(2,14,0)
+#if MIN_VERSION_haskell_src_exts(1,21,0) && MIN_VERSION_template_haskell(2,14,0)
 toDerivStrategy (Exts.DerivVia _ t)    = TH.ViaStrategy (toType t)
 #else
 toDerivStrategy d@Exts.DerivVia{}      = noTHyet "toDerivStrategy" "2.14" d
-#endif
-#endif
-
 #endif
 
 
@@ -580,9 +534,7 @@ instance ToDec (Exts.Decl l) where
         Exts.DataType _ -> TH.DataD (toCxt cxt)
                              (toName h)
                              (toTyVars h)
-#if MIN_VERSION_template_haskell(2,11,0)
                              Nothing
-#endif
                              (fmap qualConDeclToCon qcds)
                              (toDerivClauses qns)
         Exts.NewType _  -> let qcd = case qcds of
@@ -592,9 +544,7 @@ instance ToDec (Exts.Decl l) where
                         in TH.NewtypeD (toCxt cxt)
                                     (toName h)
                                     (toTyVars h)
-#if MIN_VERSION_template_haskell(2,11,0)
                                     Nothing
-#endif
                                     (qualConDeclToCon qcd)
                                     (toDerivClauses qns)
 
@@ -612,7 +562,6 @@ instance ToDec (Exts.Decl l) where
    where
     inline | b = TH.Inline | otherwise = TH.NoInline
 
-#if MIN_VERSION_template_haskell(2,11,0)
   toDec (Exts.TypeFamDecl _ h sig inj)
     = TH.OpenTypeFamilyD $ TH.TypeFamilyHead (toName h)
                                        (toTyVars h)
@@ -620,12 +569,6 @@ instance ToDec (Exts.Decl l) where
                                        (fmap toInjectivityAnn inj)
   toDec (Exts.DataFamDecl _ _ h sig)
     = TH.DataFamilyD (toName h) (toTyVars h) (toMaybeKind sig)
-#else
-  toDec (Exts.TypeFamDecl _ h sig inj)
-    = TH.FamilyD TH.TypeFam (toName h) (toTyVars h) (toMaybeKind sig)
-  toDec (Exts.DataFamDecl _ _ h sig)
-    = TH.FamilyD TH.DataFam (toName h) (toTyVars h) (toMaybeKind sig)
-#endif
 
   toDec _a@(Exts.FunBind _ mtchs)                           = hsMatchesToFunD mtchs
   toDec (Exts.PatBind _ p rhs bnds)                      = TH.ValD (toPat p)
@@ -638,18 +581,11 @@ instance ToDec (Exts.Decl l) where
   -- the 'vars' bit seems to be for: instance forall a. C (T a) where ...
   -- TH's own parser seems to flat-out ignore them, and honestly I can't see
   -- that it's obviously wrong to do so.
-#if MIN_VERSION_template_haskell(2,11,0)
   toDec (Exts.InstDecl _ Nothing irule ids) = TH.InstanceD
     Nothing
     (toCxt irule)
     (toType irule)
     (toDecs ids)
-#else
-  toDec (Exts.InstDecl _ Nothing irule ids) = TH.InstanceD
-    (toCxt irule)
-    (toType irule)
-    (toDecs ids)
-#endif
 
   toDec (Exts.ClassDecl _ cxt h fds decls) = TH.ClassD
     (toCxt cxt)
@@ -670,10 +606,8 @@ instance ToMaybeKind a => ToMaybeKind (Maybe a) where
     toMaybeKind Nothing  = Nothing
     toMaybeKind (Just a) = toMaybeKind a
 
-#if MIN_VERSION_template_haskell(2,11,0)
 instance ToInjectivityAnn (Exts.InjectivityInfo l) where
   toInjectivityAnn (Exts.InjectivityInfo _ n ns) = TH.InjectivityAnn (toName n) (fmap toName ns)
-#endif
 
 transAct :: Maybe (Exts.Activation l) -> TH.Phases
 transAct Nothing                       = TH.AllPhases
