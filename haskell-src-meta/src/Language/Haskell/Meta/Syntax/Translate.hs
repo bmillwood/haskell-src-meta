@@ -424,7 +424,7 @@ instance ToType (Exts.Type l) where
     Exts.PromotedString _ _ s -> TH.LitT $ TH.StrTyLit s
     Exts.PromotedCon _ _q n -> TH.PromotedT $ toName n
     Exts.PromotedList _ _q ts -> foldr (\t pl -> TH.PromotedConsT `TH.AppT` toType t `TH.AppT` pl) TH.PromotedNilT ts
-    Exts.PromotedTuple _ ts -> foldr (\t pt -> pt `TH.AppT` toType t) (TH.PromotedTupleT $ length ts) ts
+    Exts.PromotedTuple _ ts -> foldl (\pt t -> pt `TH.AppT` toType t) (TH.PromotedTupleT $ length ts) ts
     Exts.PromotedUnit _ -> TH.PromotedT ''()
   toType (Exts.TyEquals _ t1 t2) = TH.EqualityT `TH.AppT` toType t1 `TH.AppT` toType t2
   toType t@Exts.TySplice{} = noTH "toType" t
@@ -601,10 +601,10 @@ instance ToDec (Exts.Decl l) where
 
   toDec (Exts.AnnPragma _ ann) = TH.PragmaD (TH.AnnP (target ann) (expann ann))
     where
-      target (Exts.Ann _ n _) = TH.ValueAnnotation (toName n)
+      target (Exts.Ann _ n _)     = TH.ValueAnnotation (toName n)
       target (Exts.TypeAnn _ n _) = TH.TypeAnnotation (toName n)
       target (Exts.ModuleAnn _ _) = TH.ModuleAnnotation
-      expann (Exts.Ann _ _ e) = toExp e
+      expann (Exts.Ann _ _ e)     = toExp e
       expann (Exts.TypeAnn _ _ e) = toExp e
       expann (Exts.ModuleAnn _ e) = toExp e
 
