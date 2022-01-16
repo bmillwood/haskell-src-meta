@@ -599,6 +599,15 @@ instance ToDec (Exts.Decl l) where
    where
     toFunDep (Exts.FunDep _ ls rs) = TH.FunDep (fmap toName ls) (fmap toName rs)
 
+  toDec (Exts.AnnPragma _ ann) = TH.PragmaD (TH.AnnP (target ann) (expann ann))
+    where
+      target (Exts.Ann _ n _) = TH.ValueAnnotation (toName n)
+      target (Exts.TypeAnn _ n _) = TH.TypeAnnotation (toName n)
+      target (Exts.ModuleAnn _ _) = TH.ModuleAnnotation
+      expann (Exts.Ann _ _ e) = toExp e
+      expann (Exts.TypeAnn _ _ e) = toExp e
+      expann (Exts.ModuleAnn _ e) = toExp e
+
   toDec x = todo "toDec" x
 
 instance ToMaybeKind (Exts.ResultSig l) where
