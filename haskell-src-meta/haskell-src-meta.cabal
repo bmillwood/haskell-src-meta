@@ -1,5 +1,5 @@
 name:               haskell-src-meta
-version:            0.8.7.1
+version:            0.8.8
 cabal-version:      >= 1.10
 build-type:         Simple
 license:            BSD3
