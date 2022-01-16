@@ -1,5 +1,5 @@
 name:               haskell-src-meta
-version:            0.8.7
+version:            0.8.7.1
 cabal-version:      >= 1.10
 build-type:         Simple
 license:            BSD3
@@ -8,7 +8,7 @@ category:           Language, Template Haskell
 author:             Matt Morrow
 copyright:          (c) Matt Morrow
 maintainer:         danburton.email@gmail.com
-bug-reports:        https://github.com/DanBurton/haskell-src-meta/issues
+bug-reports:        https://github.com/haskell-party/haskell-src-meta/issues
 tested-with:        GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.1
 synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
@@ -84,4 +84,4 @@ test-suite examples
 
 source-repository head
   type:     git
-  location: git://github.com/danburton/haskell-src-meta.git
+  location: git://github.com/haskell-party/haskell-src-meta.git
