@@ -9,7 +9,7 @@ author:             Matt Morrow
 copyright:          (c) Matt Morrow
 maintainer:         danburton.email@gmail.com
 bug-reports:        https://github.com/DanBurton/haskell-src-meta/issues
-tested-with:        GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.1
+tested-with:        GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.1
 synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
                     to template-haskell abstract syntax isn't 100% complete yet.
@@ -22,7 +22,7 @@ library
                    haskell-src-exts >= 1.18 && < 1.24,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.8,
-                   template-haskell >= 2.10 && < 2.18,
+                   template-haskell >= 2.10 && < 2.19,
                    th-orphans >= 0.12 && < 0.14
 
   if impl(ghc < 7.8)
@@ -33,6 +33,7 @@ library
                    Language.Haskell.Meta.Parse
                    Language.Haskell.Meta.Syntax.Translate
                    Language.Haskell.Meta.Utils
+  other-modules:   Language.Haskell.Meta.THCompat
 
 test-suite unit
   default-language: Haskell2010
