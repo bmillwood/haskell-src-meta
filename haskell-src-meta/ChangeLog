@@ -1,3 +1,8 @@
+0.8.8
+- Implement toDec for AnnPragma (by Matt Torrence)
+- Add support for OverloadedLabels (by funketh)
+- Fix order of promoted type tuples in resulting TH (by Alexander V. Nikolaev)
+
 0.8.7.1
 - Build on GHC 9.2
 - Drop support for GHC < 8.2
