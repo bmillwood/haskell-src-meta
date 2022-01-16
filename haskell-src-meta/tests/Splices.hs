@@ -2,10 +2,7 @@
 {-# LANGUAGE CPP                   #-}
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TemplateHaskell       #-}
-
-#if MIN_VERSION_template_haskell(2,12,0)
 {-# LANGUAGE TypeApplications      #-}
-#endif
 
 #if MIN_VERSION_template_haskell(2,14,0)
 {-# LANGUAGE ExplicitForAll        #-}
@@ -24,45 +21,22 @@ $(either error return $ Meta.parseDecs
       "unit :: IO ()\nunit = return ()")
 
 -- Testing that the [] constructor works in types,
-#if MIN_VERSION_base(4,9,0)
 $(either error return $ Meta.parseDecs
       "nilp :: [a] -> ([] a)\nnilp [] = []")
-#else
--- CPP Note: Apparently ghc < 7 doesn't parse this correctly w/o the forall.
--- https://github.com/DanBurton/haskell-src-meta/issues/2
-$(either error return $ Meta.parseDecs
-      "nilp :: forall a. [a] -> ([] a)\nnilp [] = []")
-#endif
 
 $(either error return $ Meta.parseDecs
       "pair :: (,) Int Int\npair = (,) 1 2")
 
 
 ----- Testing classes and instances -----
-#if MIN_VERSION_base(4,9,0)
 $(either error return $ Meta.parseDecs $ unlines
    ["class MyClass a where mymethod :: a -> b -> (a,b)"
    ,"instance MyClass Bool where mymethod a b = (a,b)"
    ])
-#else
--- CPP Note: Apparently ghc < 7 doesn't parse this correctly w/o the forall.
--- https://github.com/DanBurton/haskell-src-meta/issues/2
-$(either error return $ Meta.parseDecs $ unlines
-   ["class MyClass a where mymethod :: forall b. a -> b -> (a,b)"
-   ,"instance MyClass Bool where mymethod a b = (a,b)"
-   ])
-#endif
 
-#if MIN_VERSION_template_haskell(2,12,0)
 $(either error return $ Meta.parseDecsWithMode (Parser.defaultParseMode { Parser.extensions = [Extension.EnableExtension Extension.TypeApplications] }) $ unlines
    ["tenStr :: String"
    ,"tenStr = show @Int 10"])
-#else
--- Type Application not supported by template-haskell < 2.12
-$(either error return $ Meta.parseDecs $ unlines
-   ["tenStr :: String"
-   ,"tenStr = show (10 :: Int)"])
-#endif
 
 #if MIN_VERSION_template_haskell(2,14,0)
 $(either error return $ Meta.parseDecsWithMode
@@ -84,11 +58,7 @@ $(either error return $ Meta.parseDecsWithMode
   $ unlines
    [
 -- Not sure why but ghc 7.10 complains that "type var a is not in scope"
-#if MIN_VERSION_template_haskell(2,11,0)
    "intConstraint :: (a ~ Int) => a"
-#else
-   "intConstraint :: Int"
-#endif
    ,"intConstraint = 3"])
 
 -- Just to check that it works as intended

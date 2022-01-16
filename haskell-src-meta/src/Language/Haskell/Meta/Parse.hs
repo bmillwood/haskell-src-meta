@@ -29,11 +29,6 @@ module Language.Haskell.Meta.Parse (
   emptyHsModule
  ) where
 
-#if MIN_VERSION_template_haskell(2,11,0)
-import Language.Haskell.TH.Syntax hiding (Extension (..))
-#else
-import Language.Haskell.TH.Syntax
-#endif
 import           Language.Haskell.Exts.Extension
 import           Language.Haskell.Exts.Parser           hiding
   (parseExp, parsePat, parseType)
@@ -41,6 +36,7 @@ import           Language.Haskell.Exts.Pretty
 import qualified Language.Haskell.Exts.SrcLoc           as Hs
 import qualified Language.Haskell.Exts.Syntax           as Hs
 import           Language.Haskell.Meta.Syntax.Translate
+import           Language.Haskell.TH.Syntax             hiding (Extension (..))
 
 -----------------------------------------------------------------------------
 

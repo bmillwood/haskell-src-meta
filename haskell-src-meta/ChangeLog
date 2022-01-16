@@ -1,3 +1,7 @@
+0.8.7.1
+- Build on GHC 9.2
+- Drop support for GHC < 8.2
+
 0.8.7:
 - Compatibility with template-haskell shipped with GHC 9.0
 

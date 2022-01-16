@@ -12,20 +12,57 @@
 -- | This module is a staging ground
 -- for to-be-organized-and-merged-nicely code.
 
-module Language.Haskell.Meta.Utils where
+module Language.Haskell.Meta.Utils (
+    module Language.Haskell.Meta.Utils
+) where
 
-import Control.Monad
-import Data.Generics                hiding (Fixity)
-import Data.List                    (findIndex)
-import Language.Haskell.Exts.Pretty (prettyPrint)
-import Language.Haskell.Meta
-import Language.Haskell.TH.Lib      hiding (cxt)
-import Language.Haskell.TH.Ppr
-import Language.Haskell.TH.Syntax
-import System.IO.Unsafe             (unsafePerformIO)
-import Text.PrettyPrint
+import           Control.Monad
+import           Data.Generics                  hiding (Fixity)
+import           Data.List                      (findIndex)
+import           Language.Haskell.Exts.Pretty   (prettyPrint)
+import           Language.Haskell.Meta
+import qualified Language.Haskell.Meta.THCompat as Compat (conP, plainTV)
+import           Language.Haskell.TH.Lib        hiding (cxt)
+import           Language.Haskell.TH.Ppr
+import           Language.Haskell.TH.Syntax
+import           System.IO.Unsafe               (unsafePerformIO)
+import           Text.PrettyPrint
 
 -----------------------------------------------------------------------------
+
+dataDCons :: Dec -> [Con]
+dataDCons (DataD _ _ _ _ cons _) = cons
+dataDCons _                      = []
+
+
+decCons :: Dec -> [Con]
+decCons (DataD _ _ _ _ cons _)   = cons
+decCons (NewtypeD _ _ _ _ con _) = [con]
+decCons _                        = []
+
+
+decTyVars :: Dec -> [TyVarBndr_ ()]
+decTyVars (DataD _ _ ns _ _ _)    = ns
+decTyVars (NewtypeD _ _ ns _ _ _) = ns
+decTyVars (TySynD _ ns _)         = ns
+decTyVars (ClassD _ _ ns _ _)     = ns
+decTyVars _                       = []
+
+
+decName :: Dec -> Maybe Name
+decName (FunD n _)             = Just n
+decName (DataD _ n _ _ _ _)    = Just n
+decName (NewtypeD _ n _ _ _ _) = Just n
+decName (TySynD n _ _)         = Just n
+decName (ClassD _ n _ _ _)     = Just n
+decName (SigD n _)             = Just n
+decName (ForeignD fgn)         = Just (foreignName fgn)
+decName _                      = Nothing
+
+
+foreignName :: Foreign -> Name
+foreignName (ImportF _ _ _ n _) = n
+foreignName (ExportF _ _ n _)   = n
 
 
 cleanNames :: (Data a) => a -> a
@@ -161,11 +198,7 @@ renameT env new (ForallT ns cxt t) =
         (t',env4,new4) = renameT env3 new3 t
     in (ForallT ns'' cxt' t', env4, new4)
   where
-#if MIN_VERSION_template_haskell(2,17,0)
-    unVarT (VarT n) = PlainTV n SpecifiedSpec
-#else
-    unVarT (VarT n) = PlainTV n
-#endif
+    unVarT (VarT n) = Compat.plainTV n
     unVarT ty       = error $ "renameT: unVarT: TODO for" ++ show ty
     renamePreds = renameThings renamePred
     renamePred = renameT
@@ -223,50 +256,6 @@ conToConType ofType con = foldr (\a b -> AppT (AppT ArrowT a) b) ofType (conType
 
 
 
-decCons :: Dec -> [Con]
-#if MIN_VERSION_template_haskell(2,11,0)
-decCons (DataD _ _ _ _ cons _)   = cons
-decCons (NewtypeD _ _ _ _ con _) = [con]
-#else
-decCons (DataD _ _ _ cons _)     = cons
-decCons (NewtypeD _ _ _ con _)   = [con]
-#endif
-decCons _                        = []
-
-
-decTyVars :: Dec -> [TyVarBndr_ ()]
-#if MIN_VERSION_template_haskell(2,11,0)
-decTyVars (DataD _ _ ns _ _ _)    = ns
-decTyVars (NewtypeD _ _ ns _ _ _) = ns
-#else
-decTyVars (DataD _ _ ns _ _)      = ns
-decTyVars (NewtypeD _ _ ns _ _)   = ns
-#endif
-decTyVars (TySynD _ ns _)         = ns
-decTyVars (ClassD _ _ ns _ _)     = ns
-decTyVars _                       = []
-
-
-decName :: Dec -> Maybe Name
-decName (FunD n _)             = Just n
-#if MIN_VERSION_template_haskell(2,11,0)
-decName (DataD _ n _ _ _ _)    = Just n
-decName (NewtypeD _ n _ _ _ _) = Just n
-#else
-decName (DataD _ n _ _ _)      = Just n
-decName (NewtypeD _ n _ _ _)   = Just n
-#endif
-decName (TySynD n _ _)         = Just n
-decName (ClassD _ n _ _ _)     = Just n
-decName (SigD n _)             = Just n
-decName (ForeignD fgn)         = Just (foreignName fgn)
-decName _                      = Nothing
-
-
-foreignName :: Foreign -> Name
-foreignName (ImportF _ _ _ n _) = n
-foreignName (ExportF _ _ n _)   = n
-
 
 unwindT :: Type -> [Type]
 unwindT = go
@@ -319,36 +308,18 @@ recCName :: Con -> Maybe Name
 recCName (RecC n _) = Just n
 recCName _          = Nothing
 
-dataDCons :: Dec -> [Con]
-#if MIN_VERSION_template_haskell(2,11,0)
-dataDCons (DataD _ _ _ _ cons _) = cons
-#else
-dataDCons (DataD _ _ _ cons _)   = cons
-#endif
-dataDCons _                      = []
-
 fromDataConI :: Info -> Q (Maybe Exp)
-#if MIN_VERSION_template_haskell(2,11,0)
 fromDataConI (DataConI dConN ty _tyConN) =
   let n = arityT ty
   in replicateM n (newName "a")
       >>= \ns -> return (Just (LamE
-                    [ConP dConN (fmap VarP ns)]
+                    [Compat.conP dConN (fmap VarP ns)]
 #if MIN_VERSION_template_haskell(2,16,0)
                     (TupE $ fmap (Just . VarE) ns)
 #else
                     (TupE $ fmap VarE ns)
 #endif
                     ))
-#else
-fromDataConI (DataConI dConN ty _tyConN _fxty) =
-  let n = arityT ty
-  in replicateM n (newName "a")
-      >>= \ns -> return (Just (LamE
-                    [ConP dConN (fmap VarP ns)]
-                    (TupE $ fmap VarE ns)))
-
-#endif
 fromDataConI _ = return Nothing
 
 fromTyConI :: Info -> Maybe Dec

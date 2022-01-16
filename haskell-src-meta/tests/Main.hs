@@ -1,5 +1,3 @@
-{-# LANGUAGE CPP #-}
-
 module Main where
 
 import qualified Control.Monad.Fail              as Fail
@@ -9,11 +7,10 @@ import qualified Language.Haskell.Exts.Parser    as Parser
 import           Language.Haskell.Meta.Parse
 import           Language.Haskell.Meta.Syntax.Translate
 import qualified Language.Haskell.TH             as TH
--- import           Test.Framework
--- import           Test.Framework.Providers.HUnit
-import Test.HUnit       (Assertion, (@?=))
-import Test.Tasty       (TestTree, defaultMain, testGroup)
-import Test.Tasty.HUnit (testCase)
+import           Test.HUnit                      (Assertion, (@?=))
+import           Test.Tasty
+  (TestTree, defaultMain, testGroup)
+import           Test.Tasty.HUnit                (testCase)
 
 type Test = TestTree
 
@@ -22,9 +19,7 @@ main = defaultMain (testGroup "unit" tests)
 
 tests :: [Test]
 tests = [ derivingClausesTest
-#if MIN_VERSION_template_haskell(2,12,0)
         , typeAppTest
-#endif
         , orderInTypeTuples
         ]
 
