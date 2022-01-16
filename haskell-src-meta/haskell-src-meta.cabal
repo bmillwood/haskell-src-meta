@@ -9,7 +9,7 @@ author:             Matt Morrow
 copyright:          (c) Matt Morrow
 maintainer:         danburton.email@gmail.com
 bug-reports:        https://github.com/DanBurton/haskell-src-meta/issues
-tested-with:        GHC == 7.10.3, GHC == 8.0.2, GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.1
+tested-with:        GHC == 8.2.2, GHC == 8.4.4, GHC == 8.6.5, GHC == 8.8.4, GHC == 8.10.7, GHC == 9.0.2, GHC == 9.2.1
 synopsis:           Parse source to template-haskell abstract syntax.
 description:        The translation from haskell-src-exts abstract syntax
                     to template-haskell abstract syntax isn't 100% complete yet.
@@ -18,15 +18,12 @@ extra-source-files: ChangeLog README.md
 
 library
   default-language: Haskell2010
-  build-depends:   base >= 4.8 && < 5,
+  build-depends:   base >= 4.10 && < 5,
                    haskell-src-exts >= 1.18 && < 1.24,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.8,
-                   template-haskell >= 2.10 && < 2.19,
+                   template-haskell >= 2.12 && < 2.19,
                    th-orphans >= 0.12 && < 0.14
-
-  if impl(ghc < 7.8)
-    build-depends: safe <= 0.3.9
 
   hs-source-dirs:  src
   exposed-modules: Language.Haskell.Meta
@@ -43,18 +40,13 @@ test-suite unit
 
   build-depends:
     HUnit                >= 1.2,
-    base                 >= 4.5,
+    base                 >= 4.10,
     haskell-src-exts     >= 1.17,
     haskell-src-meta,
     pretty               >= 1.0,
-    template-haskell     >= 2.10,
+    template-haskell     >= 2.12,
     tasty,
     tasty-hunit
-
-  -- this is needed to access Control.Monad.Fail on GHCs before 8.0
-  if !impl(ghc >= 8.0)
-    Build-Depends:
-      fail == 4.9.*
 
 
 test-suite splices
@@ -82,11 +74,6 @@ test-suite examples
     pretty,
     syb,
     template-haskell
-
-  -- this is needed to access Control.Monad.Fail on GHCs before 8.0
-  if !impl(ghc >= 8.0)
-    Build-Depends:
-      fail == 4.9.*
 
 
   other-modules:

@@ -14,11 +14,6 @@
 
 module Language.Haskell.Meta.Utils (
     module Language.Haskell.Meta.Utils
-  , Compat.dataDCons
-  , Compat.decCons
-  , Compat.decName
-  , Compat.decTyVars
-  , Compat.foreignName
 ) where
 
 import           Control.Monad
@@ -26,8 +21,7 @@ import           Data.Generics                  hiding (Fixity)
 import           Data.List                      (findIndex)
 import           Language.Haskell.Exts.Pretty   (prettyPrint)
 import           Language.Haskell.Meta
-import qualified Language.Haskell.Meta.THCompat as Compat
-  (conP, dataDCons, decCons, decName, decTyVars, foreignName, plainTV)
+import qualified Language.Haskell.Meta.THCompat as Compat (conP, plainTV)
 import           Language.Haskell.TH.Lib        hiding (cxt)
 import           Language.Haskell.TH.Ppr
 import           Language.Haskell.TH.Syntax
@@ -35,6 +29,40 @@ import           System.IO.Unsafe               (unsafePerformIO)
 import           Text.PrettyPrint
 
 -----------------------------------------------------------------------------
+
+dataDCons :: Dec -> [Con]
+dataDCons (DataD _ _ _ _ cons _) = cons
+dataDCons _                      = []
+
+
+decCons :: Dec -> [Con]
+decCons (DataD _ _ _ _ cons _)   = cons
+decCons (NewtypeD _ _ _ _ con _) = [con]
+decCons _                        = []
+
+
+decTyVars :: Dec -> [TyVarBndr_ ()]
+decTyVars (DataD _ _ ns _ _ _)    = ns
+decTyVars (NewtypeD _ _ ns _ _ _) = ns
+decTyVars (TySynD _ ns _)         = ns
+decTyVars (ClassD _ _ ns _ _)     = ns
+decTyVars _                       = []
+
+
+decName :: Dec -> Maybe Name
+decName (FunD n _)             = Just n
+decName (DataD _ n _ _ _ _)    = Just n
+decName (NewtypeD _ n _ _ _ _) = Just n
+decName (TySynD n _ _)         = Just n
+decName (ClassD _ n _ _ _)     = Just n
+decName (SigD n _)             = Just n
+decName (ForeignD fgn)         = Just (foreignName fgn)
+decName _                      = Nothing
+
+
+foreignName :: Foreign -> Name
+foreignName (ImportF _ _ _ n _) = n
+foreignName (ExportF _ _ n _)   = n
 
 
 cleanNames :: (Data a) => a -> a
@@ -281,7 +309,6 @@ recCName (RecC n _) = Just n
 recCName _          = Nothing
 
 fromDataConI :: Info -> Q (Maybe Exp)
-#if MIN_VERSION_template_haskell(2,11,0)
 fromDataConI (DataConI dConN ty _tyConN) =
   let n = arityT ty
   in replicateM n (newName "a")
@@ -293,15 +320,6 @@ fromDataConI (DataConI dConN ty _tyConN) =
                     (TupE $ fmap VarE ns)
 #endif
                     ))
-#else
-fromDataConI (DataConI dConN ty _tyConN _fxty) =
-  let n = arityT ty
-  in replicateM n (newName "a")
-      >>= \ns -> return (Just (LamE
-                    [ConP dConN (fmap VarP ns)]
-                    (TupE $ fmap VarE ns)))
-
-#endif
 fromDataConI _ = return Nothing
 
 fromTyConI :: Info -> Maybe Dec
