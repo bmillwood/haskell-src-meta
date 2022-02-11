@@ -130,7 +130,9 @@ toExtension e = case e of
   Exts.OverloadedLabels           -> Just TH.OverloadedLabels
   Exts.DerivingStrategies         -> Just TH.DerivingStrategies
   Exts.UnboxedSums                -> Just TH.UnboxedSums
+#if MIN_VERSION_haskell_src_exts(1,21,0)
   Exts.TypeInType                 -> Just TH.TypeInType
+#endif
   Exts.Strict                     -> Just TH.Strict
   Exts.StrictData                 -> Just TH.StrictData
 
@@ -203,7 +205,12 @@ fromExtension e = case e of
   TH.BangPatterns                      -> Just Exts.BangPatterns
   TH.TypeFamilies                      -> Just Exts.TypeFamilies
   TH.TypeFamilyDependencies            -> Just Exts.TypeFamilyDependencies
-  TH.TypeInType                        -> Just Exts.TypeInType
+  TH.TypeInType                        ->
+#if MIN_VERSION_haskell_src_exts(1,21,0)
+    Just Exts.TypeInType
+#else
+    Nothing
+#endif
   TH.OverloadedStrings                 -> Just Exts.OverloadedStrings
   TH.OverloadedLists                   -> Nothing
   TH.NumDecimals                       -> Nothing
