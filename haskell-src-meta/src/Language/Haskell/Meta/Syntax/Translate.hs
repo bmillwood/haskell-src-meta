@@ -870,7 +870,12 @@ toExt e = case e of
   Exts.DisambiguateRecordFields   -> Just TH.DisambiguateRecordFields
   Exts.OverloadedStrings          -> Just TH.OverloadedStrings
   Exts.GADTs                      -> Just TH.GADTs
-  Exts.MonoPatBinds               -> Just TH.MonoPatBinds
+  Exts.MonoPatBinds               ->
+#if !MIN_VERSION_template_haskell(2,18,0)
+    Just TH.MonoPatBinds
+#else
+    Nothing
+#endif
   Exts.RelaxedPolyRec             -> Just TH.RelaxedPolyRec
   Exts.ExtendedDefaultRules       -> Just TH.ExtendedDefaultRules
   Exts.UnboxedTuples              -> Just TH.UnboxedTuples
@@ -924,10 +929,36 @@ toExt e = case e of
   Exts.TypeInType                 -> Just TH.TypeInType
   Exts.Strict                     -> Just TH.Strict
   Exts.StrictData                 -> Just TH.StrictData
-  Exts.DerivingVia                -> Just TH.DerivingVia
-  Exts.QuantifiedConstraints      -> Just TH.QuantifiedConstraints
-  Exts.BlockArguments             -> Just TH.BlockArguments
+
+#if MIN_VERSION_haskell_src_exts(1,21,0)
+  Exts.DerivingVia                ->
+#if MIN_VERSION_template_haskell(2,14,0)
+    Just TH.DerivingVia
+#else
+    Nothing
+#endif
+#endif
+
+#if MIN_VERSION_haskell_src_exts(1,22,0)
+  Exts.QuantifiedConstraints      ->
+#if MIN_VERSION_template_haskell(2,14,0)
+    Just TH.QuantifiedConstraints
+#else
+    Nothing
+#endif
+#endif
+
+#if MIN_VERSION_haskell_src_exts(1,23,0)
+  Exts.BlockArguments             ->
+#if MIN_VERSION_template_haskell(2,14,0)
+    Just TH.BlockArguments
+#else
+    Nothing
+#endif
+#endif
+
   -- NB: when adding a case here, you may also need to update `fromExt`
+
 
 -- | Returns @Nothing@ when the extension is not supported by haskell-src-exts.
 fromExt :: TH.Extension -> Maybe Exts.KnownExtension
@@ -938,7 +969,9 @@ fromExt e = case e of
   TH.IncoherentInstances               -> Just Exts.IncoherentInstances
   TH.UndecidableSuperClasses           -> Nothing
   TH.MonomorphismRestriction           -> Just Exts.MonomorphismRestriction
+#if !MIN_VERSION_template_haskell(2,18,0)
   TH.MonoPatBinds                      -> Just Exts.MonoPatBinds
+#endif
   TH.MonoLocalBinds                    -> Just Exts.MonoLocalBinds
   TH.RelaxedPolyRec                    -> Just Exts.RelaxedPolyRec
   TH.ExtendedDefaultRules              -> Just Exts.ExtendedDefaultRules
@@ -974,7 +1007,6 @@ fromExt e = case e of
   TH.GADTSyntax                        -> Nothing
   TH.NPlusKPatterns                    -> Just Exts.NPlusKPatterns
   TH.DoAndIfThenElse                   -> Just Exts.DoAndIfThenElse
-  TH.BlockArguments                    -> Just Exts.BlockArguments
   TH.RebindableSyntax                  -> Just Exts.RebindableSyntax
   TH.ConstraintKinds                   -> Just Exts.ConstraintKinds
   TH.PolyKinds                         -> Just Exts.PolyKinds
@@ -992,7 +1024,6 @@ fromExt e = case e of
   TH.DeriveAnyClass                    -> Just Exts.DeriveAnyClass
   TH.DeriveLift                        -> Nothing
   TH.DerivingStrategies                -> Just Exts.DerivingStrategies
-  TH.DerivingVia                       -> Just Exts.DerivingVia
   TH.TypeSynonymInstances              -> Just Exts.TypeSynonymInstances
   TH.FlexibleContexts                  -> Just Exts.FlexibleContexts
   TH.FlexibleInstances                 -> Just Exts.FlexibleInstances
@@ -1031,7 +1062,6 @@ fromExt e = case e of
   TH.MultiWayIf                        -> Just Exts.MultiWayIf
   TH.BinaryLiterals                    -> Just Exts.BinaryLiterals
   TH.NegativeLiterals                  -> Nothing
-  TH.HexFloatLiterals                  -> Nothing
   TH.DuplicateRecordFields             -> Nothing
   TH.OverloadedLabels                  -> Just Exts.OverloadedLabels
   TH.EmptyCase                         -> Just Exts.EmptyCase
@@ -1042,11 +1072,44 @@ fromExt e = case e of
   TH.TypeApplications                  -> Just Exts.TypeApplications
   TH.Strict                            -> Just Exts.Strict
   TH.StrictData                        -> Just Exts.StrictData
+#if !MIN_VERSION_template_haskell(2,18,0)
   TH.MonadFailDesugaring               -> Nothing
+#endif
+
+-- 2.13.0 ----------------------------------------
+#if MIN_VERSION_template_haskell(2,13,0)
+  TH.HexFloatLiterals                  -> Nothing
   TH.EmptyDataDeriving                 -> Nothing
+#endif
+
+-- 2.14.0 ----------------------------------------
+#if MIN_VERSION_template_haskell(2,14,0)
+
+  TH.DerivingVia                       ->
+#if MIN_VERSION_haskell_src_exts(1,21,0)
+    Just Exts.DerivingVia
+#else
+    Nothing
+#endif
+
+  TH.QuantifiedConstraints             ->
+#if MIN_VERSION_haskell_src_exts(1,22,0)
+    Just Exts.QuantifiedConstraints
+#else
+    Nothing
+#endif
+
+  TH.BlockArguments                    ->
+#if MIN_VERSION_haskell_src_exts(1,23,0)
+    Just Exts.BlockArguments
+#else
+    Nothing
+#endif
+
   TH.NumericUnderscores                -> Nothing
-  TH.QuantifiedConstraints             -> Just Exts.QuantifiedConstraints
   TH.StarIsType                        -> Nothing
+#endif
+
   -- NB: when adding a case here, you may also need to update `toExt`
 
 -----------------------------------------------------------------------------
