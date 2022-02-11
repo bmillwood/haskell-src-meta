@@ -318,6 +318,15 @@ fromExtension e = case e of
   TH.StarIsType                        -> Nothing
 #endif
 
+-- 2.16.0 ----------------------------------------
+#if MIN_VERSION_template_haskell(2,16,0)
+  TH.UnliftedNewtypes                  -> Nothing
+  TH.ImportQualifiedPost               -> Nothing
+  TH.CUSKs                             -> Nothing
+  TH.StandaloneKindSignatures          -> Nothing
+#endif
+
+
   -- NB: when adding a case here, you may also need to update `toExtension`
 
 -----------------------------------------------------------------------------

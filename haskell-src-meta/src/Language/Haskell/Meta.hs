@@ -8,6 +8,7 @@
 -}
 
 module Language.Haskell.Meta (
+    module Language.Haskell.Meta.Extensions,
     module Language.Haskell.Meta.Parse,
     module Language.Haskell.Meta.Syntax.Translate
 ) where

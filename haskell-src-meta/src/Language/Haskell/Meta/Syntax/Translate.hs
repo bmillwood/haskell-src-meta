@@ -17,15 +17,14 @@ module Language.Haskell.Meta.Syntax.Translate (
   , TyVarBndr_
 ) where
 
-import qualified Data.Char                       as Char
-import qualified Data.List                       as List
-import qualified Language.Haskell.Exts.Extension as Exts
-import qualified Language.Haskell.Exts.SrcLoc    as Exts.SrcLoc
-import qualified Language.Haskell.Exts.Syntax    as Exts
-import           Language.Haskell.Meta.THCompat  (TyVarBndr_)
-import qualified Language.Haskell.Meta.THCompat  as Compat
-import qualified Language.Haskell.TH.Lib         as TH
-import qualified Language.Haskell.TH.Syntax      as TH
+import qualified Data.Char                      as Char
+import qualified Data.List                      as List
+import qualified Language.Haskell.Exts.SrcLoc   as Exts.SrcLoc
+import qualified Language.Haskell.Exts.Syntax   as Exts
+import           Language.Haskell.Meta.THCompat (TyVarBndr_)
+import qualified Language.Haskell.Meta.THCompat as Compat
+import qualified Language.Haskell.TH.Lib        as TH
+import qualified Language.Haskell.TH.Syntax     as TH
 
 -----------------------------------------------------------------------------
 
