@@ -12,6 +12,7 @@ module Language.Haskell.Meta (
     module Language.Haskell.Meta.Syntax.Translate
 ) where
 
+import Language.Haskell.Meta.Extensions
 import Language.Haskell.Meta.Parse
 import Language.Haskell.Meta.Syntax.Translate
 import Language.Haskell.TH.Instances ()
