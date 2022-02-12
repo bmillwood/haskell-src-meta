@@ -1,3 +1,6 @@
+0.8.9
+- Add `toExtension` and `fromExtension` to convert between HSE and TH language extensions (by Konstantin Ivanov)
+
 0.8.8
 - Implement toDec for AnnPragma (by Matt Torrence)
 - Add support for OverloadedLabels (by funketh)
