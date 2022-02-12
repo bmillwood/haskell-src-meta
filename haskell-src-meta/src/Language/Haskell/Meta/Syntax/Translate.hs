@@ -810,5 +810,3 @@ instance ToDecs (Exts.Decl l) where
 
 instance ToDecs a => ToDecs [a] where
   toDecs a = concatMap toDecs a
-
------------------------------------------------------------------------------
