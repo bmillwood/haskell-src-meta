@@ -70,7 +70,11 @@ toExtension e = case e of
   Exts.TypeOperators              -> Just TH.TypeOperators
   Exts.ParallelArrays             -> Just TH.ParallelArrays
   Exts.RecordWildCards            -> Just TH.RecordWildCards
+#if __GLASGOW_HASKELL__ >= 904
+  Exts.RecordPuns                 -> Just TH.NamedFieldPuns
+#else
   Exts.RecordPuns                 -> Just TH.RecordPuns
+#endif
   Exts.DisambiguateRecordFields   -> Just TH.DisambiguateRecordFields
   Exts.OverloadedStrings          -> Just TH.OverloadedStrings
   Exts.GADTs                      -> Just TH.GADTs
@@ -216,7 +220,18 @@ fromExtension e = case e of
   TH.NumDecimals                       -> Nothing
   TH.DisambiguateRecordFields          -> Just Exts.DisambiguateRecordFields
   TH.RecordWildCards                   -> Just Exts.RecordWildCards
+#if __GLASGOW_HASKELL__ >= 904
+  TH.NamedFieldPuns                    -> Just Exts.RecordPuns
+  TH.QualifiedDo                       -> Nothing
+  TH.UnliftedDatatypes -> Nothing
+  TH.LinearTypes -> Nothing
+  TH.LexicalNegation -> Nothing
+  TH.FieldSelectors -> Nothing
+  TH.OverloadedRecordDot -> Nothing
+  TH.OverloadedRecordUpdate -> Nothing
+#else
   TH.RecordPuns                        -> Just Exts.RecordPuns
+#endif
   TH.ViewPatterns                      -> Just Exts.ViewPatterns
   TH.GADTs                             -> Just Exts.GADTs
   TH.GADTSyntax                        -> Nothing
