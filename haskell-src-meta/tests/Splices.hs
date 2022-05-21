@@ -1,5 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-type-defaults #-}
 {-# LANGUAGE CPP                   #-}
+#if __GLASGOW_HASKELL__ >= 904
+{-# LANGUAGE TypeOperators         #-}
+#endif
 {-# LANGUAGE GADTs                 #-}
 {-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeApplications      #-}
