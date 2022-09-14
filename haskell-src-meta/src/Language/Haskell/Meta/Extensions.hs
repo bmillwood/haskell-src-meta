@@ -348,7 +348,13 @@ fromExtension e = case e of
   TH.StandaloneKindSignatures          -> Nothing
 #endif
 
+-- 2.19.0 ---------------------------------------
+
+#if MIN_VERSION_template_haskell(2,19,0)
+  TH.DeepSubsumption                   -> Nothing
+#endif
 
   -- NB: when adding a case here, you may also need to update `toExtension`
+
 
 -----------------------------------------------------------------------------
