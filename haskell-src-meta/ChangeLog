@@ -1,3 +1,6 @@
+0.8.12
+- Support for GHC 9.6 (by Troels Henriksen)
+
 0.8.11
 - Support for GHC 9.4 (by Matt Parsons)
 
