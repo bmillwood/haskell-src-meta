@@ -354,6 +354,12 @@ fromExtension e = case e of
   TH.DeepSubsumption                   -> Nothing
 #endif
 
+-- 2.20.0 ---------------------------------------
+
+#if MIN_VERSION_template_haskell(2,20,0)
+  TH.TypeData                          -> Nothing
+#endif
+
   -- NB: when adding a case here, you may also need to update `toExtension`
 
 
