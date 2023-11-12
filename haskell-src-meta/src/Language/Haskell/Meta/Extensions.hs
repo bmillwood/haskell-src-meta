@@ -360,6 +360,13 @@ fromExtension e = case e of
   TH.TypeData                          -> Nothing
 #endif
 
+-- 2.21.0 ---------------------------------------
+
+#if MIN_VERSION_template_haskell(2,20,0)
+  TH.TypeAbstractions                  -> Nothing
+  TH.ExtendedLiterals                  -> Nothing
+#endif
+
   -- NB: when adding a case here, you may also need to update `toExtension`
 
 
