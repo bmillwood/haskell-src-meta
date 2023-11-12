@@ -22,7 +22,7 @@ library
                    haskell-src-exts >= 1.21 && < 1.24,
                    pretty >= 1.0 && < 1.2,
                    syb >= 0.1 && < 0.8,
-                   template-haskell >= 2.12 && < 2.21,
+                   template-haskell >= 2.12 && < 2.22,
                    th-orphans >= 0.12 && < 0.14
 
   hs-source-dirs:  src

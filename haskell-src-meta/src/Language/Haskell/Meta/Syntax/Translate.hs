@@ -395,6 +395,18 @@ toTyVarSpec :: TyVarBndr_ flag -> TyVarBndr_ flag
 toTyVarSpec = id
 #endif
 
+-- TODO (int-index): Use MIN_VERSION_template_haskell(2,21,0)
+#if __GLASGOW_HASKELL__ >= 907
+toTyVarsVis :: ToTyVars a => a -> [TH.TyVarBndrVis]
+toTyVarsVis = map toTyVarVis . toTyVars
+  where
+    toTyVarVis (TH.KindedTV n () k) = TH.KindedTV n TH.BndrReq k
+    toTyVarVis (TH.PlainTV n ())    = TH.PlainTV n TH.BndrReq
+#else
+toTyVarsVis :: ToTyVars a => a -> [TyVarBndr_ ()]
+toTyVarsVis = toTyVars
+#endif
+
 instance ToType (Exts.Type l) where
   toType (Exts.TyForall _ tvbM cxt t) = TH.ForallT (maybe [] (fmap (toTyVarSpec . toTyVar)) tvbM) (toCxt cxt) (toType t)
   toType (Exts.TyFun _ a b) = toType a .->. toType b
@@ -530,13 +542,13 @@ instance ToStmt (Exts.Stmt l) where
 
 instance ToDec (Exts.Decl l) where
   toDec (Exts.TypeDecl _ h t)
-    = TH.TySynD (toName h) (toTyVars h) (toType t)
+    = TH.TySynD (toName h) (toTyVarsVis h) (toType t)
 
   toDec a@(Exts.DataDecl  _ dOrN cxt h qcds qns)
     = case dOrN of
         Exts.DataType _ -> TH.DataD (toCxt cxt)
                              (toName h)
-                             (toTyVars h)
+                             (toTyVarsVis h)
                              Nothing
                              (fmap qualConDeclToCon qcds)
                              (toDerivClauses qns)
@@ -546,7 +558,7 @@ instance ToDec (Exts.Decl l) where
                                                               "wrong number of constructors") a
                         in TH.NewtypeD (toCxt cxt)
                                     (toName h)
-                                    (toTyVars h)
+                                    (toTyVarsVis h)
                                     Nothing
                                     (qualConDeclToCon qcd)
                                     (toDerivClauses qns)
@@ -567,11 +579,11 @@ instance ToDec (Exts.Decl l) where
 
   toDec (Exts.TypeFamDecl _ h sig inj)
     = TH.OpenTypeFamilyD $ TH.TypeFamilyHead (toName h)
-                                       (toTyVars h)
+                                       (toTyVarsVis h)
                                        (maybe TH.NoSig TH.KindSig . toMaybeKind $ sig)
                                        (fmap toInjectivityAnn inj)
   toDec (Exts.DataFamDecl _ _ h sig)
-    = TH.DataFamilyD (toName h) (toTyVars h) (toMaybeKind sig)
+    = TH.DataFamilyD (toName h) (toTyVarsVis h) (toMaybeKind sig)
 
   toDec _a@(Exts.FunBind _ mtchs)                           = hsMatchesToFunD mtchs
   toDec (Exts.PatBind _ p rhs bnds)                      = TH.ValD (toPat p)
@@ -593,7 +605,7 @@ instance ToDec (Exts.Decl l) where
   toDec (Exts.ClassDecl _ cxt h fds decls) = TH.ClassD
     (toCxt cxt)
     (toName h)
-    (toTyVars h)
+    (toTyVarsVis h)
     (fmap toFunDep fds)
     (toDecs decls)
    where
